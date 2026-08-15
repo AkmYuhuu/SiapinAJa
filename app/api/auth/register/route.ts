@@ -1,0 +1,36 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => null)) as { email?: string; password?: string; name?: string } | null;
+  const email = body?.email?.trim().toLowerCase();
+  const password = body?.password;
+  const name = body?.name?.trim();
+
+  if (!email || !password || !name) {
+    return NextResponse.json(
+      { error: { code: "BAD_REQUEST", message: "Nama, email, dan kata sandi wajib diisi." } },
+      { status: 400 },
+    );
+  }
+  if (password.length < 8) {
+    return NextResponse.json(
+      { error: { code: "BAD_REQUEST", message: "Kata sandi minimal 8 karakter." } },
+      { status: 400 },
+    );
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name } },
+  });
+
+  if (error) {
+    const message = error.message.includes("already") ? "Email sudah terdaftar." : error.message;
+    return NextResponse.json({ error: { code: "BAD_REQUEST", message } }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, needsEmailConfirm: !data.session }, { status: 201 });
+}
