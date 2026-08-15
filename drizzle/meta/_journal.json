@@ -8,6 +8,13 @@
       "when": 1786793876382,
       "tag": "0000_vengeful_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786797470000,
+      "tag": "0001_harden_security_and_constraints",
+      "breakpoints": true
     }
   ]
 }
