@@ -12,6 +12,15 @@ export async function GET() {
     return NextResponse.json(null);
   }
 
-  const entitlement = await resolveEntitlement(user.id);
-  return NextResponse.json(entitlement);
+  try {
+    const entitlement = await resolveEntitlement(user.id);
+    return NextResponse.json(entitlement);
+  } catch (err) {
+    // Fail closed: if entitlement cannot be verified, do not fabricate access.
+    console.error("Entitlement resolution error:", err);
+    return NextResponse.json(
+      { error: { code: "INTERNAL_ERROR", message: "Status akses tidak dapat dimuat." } },
+      { status: 500 },
+    );
+  }
 }
