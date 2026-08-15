@@ -5,7 +5,6 @@
 // locked whenever the server check cannot succeed.
 
 import type { Entitlement, Session, AccessState, VerifyResult } from "./types";
-
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -42,15 +41,16 @@ export const api = {
   /**
    * One combined verify: session + entitlement in one call. If anything
    * cannot be verified (offline, error, no session), premium access is off
-   * (spec §4.4: offline means premium tools stay locked).
+   * (spec §4.4: offline means premium tools stay locked). This is a UX layer -
+   * the server-side guard is the security authority.
    */
-  async verifyAccess(pack: string): Promise<VerifyResult> {
+  async verifyAccess(tool: { toolId: string; status: string }): Promise<VerifyResult> {
     try {
       const [session, entitlement] = await Promise.all([
         http<Session | null>("/api/auth/session"),
         http<Entitlement | null>("/api/account/entitlement"),
       ]);
-      return { access: evaluate(session, entitlement, pack), session, entitlement };
+      return { access: evaluate(session, entitlement, tool), session, entitlement };
     } catch {
       const offline = typeof navigator !== "undefined" && !navigator.onLine;
       return {
@@ -65,7 +65,7 @@ export const api = {
 function evaluate(
   session: Session | null,
   entitlement: Entitlement | null,
-  pack: string,
+  tool: { toolId: string; status: string },
 ): AccessState {
   if (!session) return { ok: false, reason: "no-session" };
   if (!entitlement || entitlement.status !== "active") {
@@ -75,8 +75,11 @@ function evaluate(
   if (new Date(entitlement.expiresAt).getTime() <= now) {
     return { ok: false, reason: "expired" };
   }
-  if (!entitlement.packs.includes(pack) && !entitlement.packs.includes("all")) {
-    return { ok: false, reason: "expired" };
+  if (tool.status !== "active") {
+    return { ok: false, reason: "disabled" };
+  }
+  if (!entitlement.tools.includes(tool.toolId)) {
+    return { ok: false, reason: "not-entitled" };
   }
   return { ok: true };
 }

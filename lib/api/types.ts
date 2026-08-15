@@ -19,7 +19,7 @@ export class ApiError extends Error {
   }
 }
 
-export type AccessReason = "no-session" | "expired" | "offline" | "error";
+export type AccessReason = "no-session" | "not-entitled" | "expired" | "disabled" | "offline" | "error";
 
 export type AccessState = { ok: true } | { ok: false; reason: AccessReason };
 

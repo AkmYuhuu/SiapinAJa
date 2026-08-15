@@ -16,7 +16,7 @@ function pageTitleForPath(pathname: string): string {
   if (parts[0] === "tools" && parts[1]) {
     const cat = getCategory(parts[1]);
     if (parts.length === 2) return cat?.name ?? "Tools";
-    const tool = getToolByRoute(`/tools/${parts[1]}/${parts[2]}`) ?? getTool(parts[2]);
+    const tool = getToolByRoute(`/tools/${parts[1]}/${parts[2]}`);
     if (tool) return tool.name;
     return "Tools";
   }
