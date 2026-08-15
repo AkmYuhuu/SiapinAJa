@@ -28,7 +28,15 @@ export async function resolveEntitlement(userId: string): Promise<ResolvedEntitl
     .innerJoin(packages, eq(subscriptions.packageId, packages.id))
     .innerJoin(packageTools, eq(packageTools.packageId, packages.id))
     .innerJoin(tools, eq(packageTools.toolId, tools.id))
-    .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, "active")));
+    .where(
+      and(
+        eq(subscriptions.userId, userId),
+        eq(subscriptions.status, "active"),
+        gt(subscriptions.expiresAt, now),
+        eq(packages.status, "active"),
+        eq(tools.status, "active"),
+      ),
+    );
 
   const packageMap = new Map<string, { slug: string; status: string; expiresAt: Date }>();
   const toolSet = new Set<string>();
@@ -40,17 +48,20 @@ export async function resolveEntitlement(userId: string): Promise<ResolvedEntitl
     }
   }
 
-  const activePackages = [...packageMap.values()].filter((p) => p.expiresAt.getTime() > now.getTime());
   const expiresAt =
-    activePackages.length > 0
-      ? new Date(Math.max(...activePackages.map((p) => p.expiresAt.getTime()))).toISOString()
+    rows.length > 0
+      ? new Date(Math.max(...[...packageMap.values()].map((p) => p.expiresAt.getTime()))).toISOString()
       : now.toISOString();
 
   return {
-    packs: activePackages.map((p) => p.slug),
-    status: activePackages.length > 0 ? "active" : "expired",
+    packs: [...packageMap.values()].map((p) => p.slug),
+    status: rows.length > 0 ? "active" : "expired",
     expiresAt,
-    packages: activePackages.map((p) => ({ slug: p.slug, status: "active", expiresAt: p.expiresAt.toISOString() })),
+    packages: [...packageMap.values()].map((p) => ({
+      slug: p.slug,
+      status: "active",
+      expiresAt: p.expiresAt.toISOString(),
+    })),
     tools: [...toolSet],
   };
 }
@@ -62,7 +73,15 @@ export async function hasActivePackage(userId: string, packageSlug: string): Pro
     .select({ expiresAt: subscriptions.expiresAt })
     .from(subscriptions)
     .innerJoin(packages, eq(subscriptions.packageId, packages.id))
-    .where(and(eq(subscriptions.userId, userId), eq(packages.slug, packageSlug), eq(subscriptions.status, "active"), gt(subscriptions.expiresAt, now)))
+    .where(
+      and(
+        eq(subscriptions.userId, userId),
+        eq(packages.slug, packageSlug),
+        eq(subscriptions.status, "active"),
+        eq(packages.status, "active"),
+        gt(subscriptions.expiresAt, now),
+      ),
+    )
     .limit(1);
   return rows.length > 0;
 }
@@ -79,6 +98,8 @@ export async function resolveAllowedTools(userId: string, toolSlugs?: string[]):
       and(
         eq(subscriptions.userId, userId),
         eq(subscriptions.status, "active"),
+        eq(packages.status, "active"),
+        eq(tools.status, "active"),
         gt(subscriptions.expiresAt, new Date()),
         toolSlugs ? inArray(tools.slug, toolSlugs) : undefined,
       ),
