@@ -3,14 +3,19 @@ import { and, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { payments, subscriptions, packages, webhookEvents } from "@/lib/db/schema";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 // Payment webhook (Backend_v3 §21-29, §2.24).
 // Provider: SociaBuzz-style webhook. All mutations run inside a transaction
 // so payment = PAID and subscription = ACTIVE are always consistent.
 //
-// Adjust signature verification to the provider's documented scheme. The
-// endpoint never trusts user_id/amount/status sent by a client - it only
-// acts on the verified provider event.
+// The endpoint never trusts user_id/amount/status sent by a client - it only
+// acts on the verified provider event. Signature verification is required
+// (fail closed: no secret configured => webhook is rejected).
+//
+// Idempotency is (provider, event_id): duplicates return a success no-op.
+// On retry of a previously failed event the existing row is re-processed
+// instead of being re-inserted (unique index safe).
 
 interface WebhookPayload {
   event_id: string;
@@ -32,20 +37,44 @@ async function verifySignature(req: Request): Promise<boolean> {
   return signature === expected;
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  const code = (err as { code?: string })?.code;
+  return code === "23505";
+}
+
+function isStr(v: unknown): v is string {
+  return typeof v === "string" && v.length > 0;
+}
+
+function isNum(v: unknown): v is number {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
 export async function POST(req: Request) {
+  const limiter = rateLimit(`webhook:${clientIp(req)}`, 60);
+  if (!limiter.ok) {
+    return NextResponse.json(
+      { error: { code: "RATE_LIMITED", message: "Terlalu banyak permintaan." } },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil((limiter.retryAfterMs ?? 60_000) / 1000)) },
+      },
+    );
+  }
+
   const valid = await verifySignature(req);
   if (!valid) {
     return NextResponse.json({ error: { code: "WEBHOOK_INVALID", message: "Signature tidak valid." } }, { status: 401 });
   }
 
   const payload = (await req.json().catch(() => null)) as WebhookPayload | null;
-  if (!payload?.event_id || !payload.event_type) {
+  if (!payload || !isStr(payload.event_id) || !isStr(payload.event_type)) {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: "Payload tidak lengkap." } }, { status: 400 });
   }
 
   const provider = "sociabuzz";
 
-  // Idempotency: unique (provider, event_id). Already processed -> 200.
+  // Idempotency: unique (provider, event_id). Already processed -> success no-op.
   const existing = await db
     .select({ id: webhookEvents.id, status: webhookEvents.status })
     .from(webhookEvents)
@@ -58,24 +87,45 @@ export async function POST(req: Request) {
 
   try {
     await db.transaction(async (tx) => {
-      await tx.insert(webhookEvents).values({
-        provider,
-        eventId: payload.event_id,
-        eventType: payload.event_type,
-        payload,
-        status: "processing",
-        receivedAt: new Date(),
-      });
+      let eventId: string | null = null;
+      if (existing.length > 0) {
+        eventId = existing[0].id;
+        await tx
+          .update(webhookEvents)
+          .set({ status: "processing", payload, receivedAt: new Date() })
+          .where(eq(webhookEvents.id, existing[0].id));
+      } else {
+        const inserted = await tx
+          .insert(webhookEvents)
+          .values({
+            provider,
+            eventId: payload.event_id,
+            eventType: payload.event_type,
+            payload,
+            status: "processing",
+            receivedAt: new Date(),
+          })
+          .returning({ id: webhookEvents.id });
+        eventId = inserted[0]?.id ?? null;
+      }
 
       if (payload.event_type !== "payment.success") {
-        await tx.update(webhookEvents).set({ status: "ignored", processedAt: new Date() }).where(eq(webhookEvents.eventId, payload.event_id));
+        if (eventId) {
+          await tx
+            .update(webhookEvents)
+            .set({ status: "ignored", processedAt: new Date() })
+            .where(eq(webhookEvents.id, eventId));
+        }
         return;
       }
 
-      const pkg = await tx.select().from(packages).where(eq(packages.slug, payload.package_slug ?? "")).limit(1);
-      if (pkg.length === 0 || payload.amount !== pkg[0].price) {
-        await tx.update(webhookEvents).set({ status: "failed", errorMessage: "amount/package mismatch", processedAt: new Date() }).where(eq(webhookEvents.eventId, payload.event_id));
-        throw new Error("PAYMENT_INVALID");
+      if (!isStr(payload.package_slug) || !isNum(payload.amount) || !isStr(payload.user_email)) {
+        throw new Error("PAYMENT_INVALID:missing payment fields");
+      }
+
+      const pkg = await tx.select().from(packages).where(eq(packages.slug, payload.package_slug)).limit(1);
+      if (pkg.length === 0 || pkg[0].status !== "active" || payload.amount !== pkg[0].price) {
+        throw new Error("PAYMENT_INVALID:amount/package mismatch");
       }
 
       // Resolve the paying user by email (client never sends a trusted user_id).
@@ -85,7 +135,6 @@ export async function POST(req: Request) {
       const userId = rows.rows[0].id;
 
       const now = new Date();
-      const paidAt = now;
       await tx.insert(payments).values({
         userId,
         packageId: pkg[0].id,
@@ -94,7 +143,7 @@ export async function POST(req: Request) {
         amount: payload.amount,
         currency: pkg[0].currency,
         status: "paid",
-        paidAt,
+        paidAt: now,
       });
 
       // Renewal rule (§2.14/§26): extend from existing expires_at if still active.
@@ -126,9 +175,29 @@ export async function POST(req: Request) {
         });
       }
 
-      await tx.update(webhookEvents).set({ status: "processed", processedAt: now }).where(eq(webhookEvents.eventId, payload.event_id));
+      if (eventId) {
+        await tx
+          .update(webhookEvents)
+          .set({ status: "processed", processedAt: now })
+          .where(eq(webhookEvents.id, eventId));
+      }
     });
   } catch (err) {
+    // Lost a race to another request for the same event -> treat as no-op.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ ok: true, alreadyProcessed: true });
+    }
+    // Record the failure outside the rolled-back transaction so a retry can
+    // be detected, then return an error (spec §20). A failed webhook never
+    // activates a subscription.
+    try {
+      await db
+        .update(webhookEvents)
+        .set({ status: "failed", errorMessage: err instanceof Error ? err.message : "processing error", processedAt: new Date() })
+        .where(and(eq(webhookEvents.provider, provider), eq(webhookEvents.eventId, payload.event_id)));
+    } catch {
+      // failure record is best-effort
+    }
     console.error("Payment webhook error:", err);
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Gagal memproses pembayaran." } }, { status: 500 });
   }
