@@ -1,26 +1,33 @@
-"use client";
-
-import { use } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTool, getToolByRoute, getCategory } from "@/lib/registry";
-import { EntitlementGate } from "@/components/auth/entitlement-gate";
+import { requireToolAccess } from "@/lib/tool-access";
 import { Breadcrumbs, ToolHeader } from "@/components/tools/tool-shell";
 import { Icon } from "@/components/icons";
 import { LazyTool } from "@/lib/tool-pages";
 
-export default function ToolPage({ params }: { params: Promise<{ category: string; slug: string }> }) {
-  const { category: categorySlug, slug } = use(params);
+export default async function ToolPage({
+  params,
+}: {
+  params: Promise<{ category: string; slug: string }>;
+}) {
+  const { category: categorySlug, slug } = await params;
   const tool = getToolByRoute(`/tools/${categorySlug}/${slug}`) ?? getTool(String(slug));
   if (!tool) notFound();
+
+  // The registry identifies the tool; the server decides whether the current
+  // authenticated user may open it. Never render the tool before this check.
+  const access = await requireToolAccess(tool.toolId);
+  if (!access.ok) {
+    redirect(access.reason === "no-session" ? "/login" : "/pricing");
+  }
+
   const category = getCategory(tool.category);
 
   return (
     <div>
       <Breadcrumbs tool={tool} categoryName={category?.name ?? "Tools"} />
       <ToolHeader tool={tool} />
-      <EntitlementGate tool={tool}>
-        <LazyTool route={tool.route} />
-      </EntitlementGate>
+      <LazyTool route={tool.route} />
     </div>
   );
 }
