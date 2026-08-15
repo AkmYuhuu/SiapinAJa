@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, check, sql } from "drizzle-orm/pg-core";
 
 export const tools = pgTable("tools", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,4 +9,7 @@ export const tools = pgTable("tools", {
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-});
+}, (t) => [
+  check("tools_category_check", sql`${t.category} in ('umkm', 'freelancer', 'creator-seller')`),
+  check("tools_status_check", sql`${t.status} in ('active', 'inactive')`),
+]);
