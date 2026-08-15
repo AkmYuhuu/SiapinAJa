@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getTool, getToolByRoute, getCategory } from "@/lib/registry";
+import { getToolByRoute, getCategory } from "@/lib/registry";
 import { requireToolAccess } from "@/lib/tool-access";
 import { Breadcrumbs, ToolHeader } from "@/components/tools/tool-shell";
 import { Icon } from "@/components/icons";
@@ -11,8 +11,8 @@ export default async function ToolPage({
   params: Promise<{ category: string; slug: string }>;
 }) {
   const { category: categorySlug, slug } = await params;
-  const tool = getToolByRoute(`/tools/${categorySlug}/${slug}`) ?? getTool(String(slug));
-  if (!tool) notFound();
+  const tool = getToolByRoute(`/tools/${categorySlug}/${slug}`);
+  if (!tool || tool.category !== categorySlug) notFound();
 
   // The registry identifies the tool; the server decides whether the current
   // authenticated user may open it. Never render the tool before this check.
