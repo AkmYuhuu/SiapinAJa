@@ -4,11 +4,7 @@ import { NextResponse } from "next/server";
  * TEMPORARY SOCIABUZZ WEBHOOK DIAGNOSTIC
  *
  * This endpoint intentionally performs NO payment, subscription, or database
- * mutations. It is only used to discover how SociaBuzz sends its webhook
- * authentication and payload during "Test Notification".
- *
- * Remove this diagnostic handler and restore the production webhook handler
- * after the SociaBuzz request format has been confirmed.
+ * mutations. It discovers how SociaBuzz sends authentication and payload data.
  */
 export async function POST(req: Request) {
   const headers = req.headers;
@@ -21,26 +17,23 @@ export async function POST(req: Request) {
     body = null;
   }
 
-  const headerPresence = {
-    authorization: headers.has("authorization"),
-    xWebhookSignature: headers.has("x-webhook-signature"),
-    xWebhookToken: headers.has("x-webhook-token"),
-    webhookToken: headers.has("webhook-token"),
-    xSociaBuzzToken: headers.has("x-sociabuzz-token"),
-    contentType: headers.get("content-type"),
-  };
-
   const bodyKeys =
     body && typeof body === "object" && !Array.isArray(body)
       ? Object.keys(body as Record<string, unknown>)
       : [];
 
+  const url = new URL(req.url);
+  const queryKeys = Array.from(url.searchParams.keys());
+
   return NextResponse.json({
     ok: true,
     diagnostic: true,
-    message: "SociaBuzz webhook diterima. Tidak ada data pembayaran yang diproses.",
+    message:
+      "SociaBuzz webhook diterima. Tidak ada data pembayaran yang diproses.",
     method: req.method,
-    headerPresence,
+    contentType: headers.get("content-type"),
+    headerNames: Array.from(headers.keys()).sort(),
+    queryKeys,
     bodyKeys,
     bodyIsJson: body !== null,
     bodyLength: rawBody.length,
