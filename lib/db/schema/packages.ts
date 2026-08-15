@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, bigint, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, bigint, integer, timestamp, check, sql } from "drizzle-orm/pg-core";
 
 export const packages = pgTable("packages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -11,4 +11,7 @@ export const packages = pgTable("packages", {
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-});
+}, (t) => [
+  check("packages_price_nonnegative_check", sql`${t.price} >= 0`),
+  check("packages_duration_positive_check", sql`${t.durationDays} > 0`),
+]);
