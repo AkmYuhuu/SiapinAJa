@@ -1,3 +1,5 @@
+import "server-only";
+
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
