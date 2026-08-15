@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, primaryKey, check, sql } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, primaryKey, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { profiles } from "./profiles";
 
 export const userRoles = pgTable(

@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, bigint, integer, timestamp, check, sql } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, bigint, integer, timestamp, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const packages = pgTable("packages", {
   id: uuid("id").primaryKey().defaultRandom(),
