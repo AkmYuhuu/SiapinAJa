@@ -1,3 +1,5 @@
+import "server-only";
+
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { db } from "./db/index";
 import { packages, packageTools, subscriptions, tools } from "./db/schema";
@@ -5,6 +7,9 @@ import { packages, packageTools, subscriptions, tools } from "./db/schema";
 // Centralized entitlement resolution (Backend_v3 §2.21/§55).
 // V1 has no `entitlements` table: effective access = subscriptions +
 // packages + package_tools + tools. Server is the only source of truth.
+//
+// Every query enforces the full chain (spec §8-§10): subscription ACTIVE +
+// not expired + package ACTIVE + tool ACTIVE. Any failure = no access.
 
 export interface ResolvedEntitlement {
   packs: string[];
