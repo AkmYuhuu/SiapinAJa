@@ -9,8 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 // requireAdmin(). A hidden menu is not authorization.
 //
 // Normal admins are stored in user_roles. For a solo-developer deployment,
-// ADMIN_EMAILS can be used as a bootstrap allowlist so the owner does not
-// need to manually edit user_roles in Supabase.
+// ADMIN_EMAILS is a bootstrap allowlist. When a matching user signs in,
+// their admin role is also persisted to user_roles so the account is a real
+// admin in the application database, not only an environment-variable match.
 
 export type AdminCheckResult =
   | { ok: true }
@@ -23,6 +24,18 @@ function configuredAdminEmails(): Set<string> {
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),
   );
+}
+
+async function bootstrapAdminRole(userId: string): Promise<boolean> {
+  try {
+    await db
+      .insert(userRoles)
+      .values({ userId, role: "admin" })
+      .onConflictDoNothing();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function requireAdmin(): Promise<AdminCheckResult> {
@@ -40,7 +53,12 @@ export async function requireAdmin(): Promise<AdminCheckResult> {
   if (!user) return { ok: false, reason: "no-session" };
 
   const email = user.email?.trim().toLowerCase();
-  if (email && configuredAdminEmails().has(email)) return { ok: true };
+  if (email && configuredAdminEmails().has(email)) {
+    // Persist the bootstrap role. Authorization still succeeds even if the
+    // insert fails, because the environment allowlist is itself authoritative.
+    await bootstrapAdminRole(user.id);
+    return { ok: true };
+  }
 
   try {
     const rows = await db
