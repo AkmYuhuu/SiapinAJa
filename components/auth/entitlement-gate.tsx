@@ -16,10 +16,12 @@ import { useAuth } from "@/components/auth/auth-provider";
 export function EntitlementGate({
   tool,
   children,
+  permissionToolId,
   forceLocked = false,
 }: {
   tool: ToolDef;
   children: ReactNode;
+  permissionToolId?: string;
   forceLocked?: boolean;
 }) {
   const { session, entitlement, loading } = useAuth();
@@ -54,13 +56,14 @@ export function EntitlementGate({
       return;
     }
 
-    if (!entitlement.tools.includes(tool.toolId)) {
+    const effectiveToolId = permissionToolId ?? tool.toolId;
+    if (!entitlement.tools.includes(effectiveToolId)) {
       setState({ phase: "locked", reason: "not-entitled" });
       return;
     }
 
     setState({ phase: "open" });
-  }, [entitlement, loading, session, tool.status, tool.toolId, forceLocked]);
+  }, [entitlement, loading, permissionToolId, session, tool.status, tool.toolId, forceLocked]);
 
   if (state.phase === "loading") {
     return (
