@@ -34,7 +34,7 @@ const MAIN: NavItem[] = [
 
 const BOTTOM: NavItem[] = [
   { href: "/pricing", label: "Paket & Billing", icon: "wallet" },
-  { href: "/redeem", label: "Aktifkan Kode", icon: "key" },
+  { href: "/redeem", label: "Aktifkan Kode", icon: "tag" },
   { href: "/settings", label: "Pengaturan", icon: "settings" },
   { href: "/help", label: "Bantuan", icon: "help" },
 ];
