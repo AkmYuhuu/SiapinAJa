@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
@@ -68,6 +69,30 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { session, logout } = useAuth();
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session) {
+      setIsAdmin(false);
+      return;
+    }
+
+    fetch("/api/auth/admin-status", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (!cancelled) setIsAdmin(response.ok && data?.isAdmin === true);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.userId]);
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b border-border px-4">
@@ -95,6 +120,21 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="my-3 border-t border-border" />
         <NavLinks items={BOTTOM} onNavigate={onNavigate} />
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className={`mt-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+              pathname === "/admin" || pathname.startsWith("/admin/")
+                ? "bg-accent-soft font-semibold text-accent-ink"
+                : "text-ink-secondary hover:bg-surface-muted hover:text-ink"
+            }`}
+          >
+            <Icon name="tag" className="size-4" />
+            Admin
+          </Link>
+        )}
       </nav>
       <div className="border-t border-border p-2.5">
         {session ? (
@@ -110,6 +150,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-medium text-ink">{session.name}</span>
                 <span className="block truncate text-[11px] text-ink-faint">{session.email}</span>
+                {isAdmin && <span className="block text-[10px] font-semibold text-accent-strong">Admin</span>}
               </span>
             </Link>
             <button onClick={logout} title="Keluar" aria-label="Keluar" className="flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted hover:text-danger">
