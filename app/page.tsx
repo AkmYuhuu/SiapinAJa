@@ -2,10 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { CATEGORIES, TOOLS } from "@/lib/registry";
 import { Icon } from "@/components/icons";
+import { EarlyAccessNotice } from "@/components/landing/early-access-notice";
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
+      <EarlyAccessNotice />
+
       {/* top nav */}
       <header className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-8">
@@ -13,8 +16,11 @@ export default function LandingPage() {
             <span className="flex size-8 items-center justify-center rounded-md bg-accent">
               <Icon name="tools" className="size-4 text-white" />
             </span>
-            <span className="text-base font-bold tracking-tight text-ink">
-              Siapin<span className="text-accent-strong">Aja</span>
+            <span className="flex flex-col leading-tight">
+              <span className="text-base font-bold tracking-tight text-ink">
+                Siapin<span className="text-accent-strong">Aja</span>
+              </span>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-ink-faint">Early Access</span>
             </span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-ink-secondary md:flex">
