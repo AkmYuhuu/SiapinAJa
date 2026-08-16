@@ -5,6 +5,7 @@ import { Breadcrumbs, ToolHeader } from "@/components/tools/tool-shell";
 import { EntitlementGate } from "@/components/auth/entitlement-gate";
 import { LazyTool } from "@/lib/tool-pages";
 import { ToolLocked } from "@/components/tools/tool-locked";
+import { getPermissionToolId } from "@/lib/tool-identity";
 
 // Premium tool page (spec §6, §30). The server is the authorization
 // authority: it resolves the exact canonical route, looks up the tool, then
@@ -23,7 +24,8 @@ export default async function ToolPage({
   const tool = getToolByRoute(`/tools/${categorySlug}/${slug}`);
   if (!tool || tool.category !== categorySlug) notFound();
 
-  const access = await requireToolAccess(tool.toolId);
+  const permissionToolId = getPermissionToolId(tool);
+  const access = await requireToolAccess(permissionToolId);
   if (!access.ok) {
     if (access.reason === "no-session") redirect("/login");
     return <ToolLocked tool={tool} reason={access.reason} />;
@@ -35,7 +37,7 @@ export default async function ToolPage({
     <div>
       <Breadcrumbs tool={tool} categoryName={categoryMeta?.name ?? "Tools"} />
       <ToolHeader tool={tool} />
-      <EntitlementGate tool={tool}>
+      <EntitlementGate tool={tool} permissionToolId={permissionToolId}>
         <LazyTool route={tool.route} />
       </EntitlementGate>
     </div>
