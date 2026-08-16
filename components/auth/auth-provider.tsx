@@ -9,9 +9,8 @@ interface AuthContextValue {
   session: Session | null;
   entitlement: Entitlement | null;
   loading: boolean;
-  /** Re-verify everything from the server, e.g. after returning online. */
   refresh: () => Promise<void>;
-  login: (email: string, password: string) => Promise<Session>;
+  login: (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }) => Promise<Session>;
   logout: () => Promise<void>;
 }
 
@@ -20,15 +19,11 @@ const AuthContext = createContext<AuthContextValue>({
   entitlement: null,
   loading: true,
   refresh: async () => {},
-  login: async () => {
-    throw new Error("Auth provider belum siap.");
-  },
+  login: async () => { throw new Error("Auth provider belum siap."); },
   logout: async () => {},
 });
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export function useAuth() { return useContext(AuthContext); }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,14 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const [s, e] = await Promise.all([api.getSession(), api.getEntitlement()]);
-      setSession(s);
-      setEntitlement(e);
+      setSession(s); setEntitlement(e);
     } catch {
-      setSession(null);
-      setEntitlement(null);
-    } finally {
-      setLoading(false);
-    }
+      setSession(null); setEntitlement(null);
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -54,39 +45,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const [s, e] = await Promise.all([api.getSession(), api.getEntitlement()]);
         if (cancelled) return;
-        setSession(s);
-        setEntitlement(e);
+        setSession(s); setEntitlement(e);
       } catch {
         if (cancelled) return;
-        setSession(null);
-        setEntitlement(null);
+        setSession(null); setEntitlement(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     const onOnline = () => refresh();
     window.addEventListener("online", onOnline);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("online", onOnline);
-    };
+    return () => { cancelled = true; window.removeEventListener("online", onOnline); };
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const s = await api.login(email, password);
+  const login = useCallback(async (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }) => {
+    const s = await api.login(email, password, consent);
     await refresh();
     return s;
   }, [refresh]);
 
   const logout = useCallback(async () => {
     await api.logout();
-    setSession(null);
-    setEntitlement(null);
+    setSession(null); setEntitlement(null);
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ session, entitlement, loading, refresh, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ session, entitlement, loading, refresh, login, logout }}>{children}</AuthContext.Provider>;
 }
