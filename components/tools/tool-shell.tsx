@@ -11,21 +11,41 @@ import { ConfirmDialog } from "@/components/ui/confirm";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/fields";
 import { useProject } from "./use-project";
+import { isFavorite, toggleFavorite } from "@/lib/local-prefs";
 
 export function ToolHeader({ tool, children }: { tool: ToolDef; children?: ReactNode }) {
+  const [favorite, setFavorite] = useState(() => isFavorite(tool.route));
+
+  const handleToggleFavorite = () => {
+    setFavorite(toggleFavorite(tool.route));
+  };
+
   return (
     <div className="print-hide mb-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+      <div className="flex flex-wrap items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
           <Icon name={tool.icon} className="size-5" />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold text-ink">{tool.name}</h1>
             <Badge tone="accent">Paket {packName(tool)}</Badge>
           </div>
           <p className="text-[13px] text-ink-secondary">{tool.description}</p>
         </div>
+        <button
+          type="button"
+          onClick={handleToggleFavorite}
+          aria-label={favorite ? "Hapus dari favorit" : "Tambahkan ke favorit"}
+          title={favorite ? "Hapus dari favorit" : "Tambahkan ke favorit"}
+          className={`flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors ${
+            favorite
+              ? "border-warning/30 bg-warning-soft text-warning"
+              : "border-border bg-surface text-ink-faint hover:border-accent/40 hover:text-accent-strong"
+          }`}
+        >
+          <Icon name="star" className="size-4" />
+        </button>
       </div>
       {children}
     </div>
