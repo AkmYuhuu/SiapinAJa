@@ -77,6 +77,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.push(q.trim() ? `/dashboard?q=${encodeURIComponent(q.trim())}` : "/dashboard");
   };
 
+  const isDashboard = pathname === "/dashboard";
+
   return (
     <div className="min-h-screen">
       {/* Desktop sidebar */}
@@ -229,7 +231,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="app-main mx-auto w-full max-w-6xl px-4 py-6 lg:px-8">{children}</main>
+        <main className="app-main mx-auto w-full max-w-6xl px-4 py-6 lg:px-8">
+          {!isDashboard && (
+            <div className="mb-5">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-ink-secondary hover:bg-surface-muted hover:text-ink"
+              >
+                <Icon name="chevron" className="size-3.5 rotate-180" />
+                Kembali ke Beranda
+              </button>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );
