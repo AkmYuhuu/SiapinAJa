@@ -35,6 +35,7 @@ export async function GET() {
         packageName: packages.name,
         redeemedAt: redemptionCodes.redeemedAt,
         createdAt: redemptionCodes.createdAt,
+        expiresAt: redemptionCodes.expiresAt,
       })
       .from(redemptionCodes)
       .innerJoin(packages, eq(redemptionCodes.packageId, packages.id))
@@ -82,6 +83,8 @@ export async function POST(req: Request) {
   if (!adminUserId) return jsonError(401, "NO_SESSION", "Sesi login tidak ditemukan.");
 
   const generated: string[] = [];
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + pkg.durationDays * 24 * 60 * 60 * 1000);
 
   await db.transaction(async (tx) => {
     for (let i = 0; i < quantity; i++) {
@@ -92,6 +95,7 @@ export async function POST(req: Request) {
         packageId: pkg.id,
         durationDays: pkg.durationDays,
         status: "active",
+        expiresAt,
       });
       generated.push(code);
     }
@@ -100,7 +104,7 @@ export async function POST(req: Request) {
       adminUserId,
       action: "generate_redemption_codes",
       reason: "Manual payment activation",
-      metadata: { packageSlug: pkg.slug, quantity },
+      metadata: { packageSlug: pkg.slug, quantity, expiresAt: expiresAt.toISOString() },
     });
   });
 
@@ -108,6 +112,7 @@ export async function POST(req: Request) {
     {
       ok: true,
       package: { slug: pkg.slug, name: pkg.name, durationDays: pkg.durationDays },
+      expiresAt: expiresAt.toISOString(),
       codes: generated,
     },
     { status: 201 },
