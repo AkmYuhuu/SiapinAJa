@@ -10,7 +10,7 @@ export function EarlyAccessNotice() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]">
+    <div className="absolute inset-x-0 top-0 z-[80] flex min-h-screen items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-[2px]">
       <div
         role="dialog"
         aria-modal="true"
