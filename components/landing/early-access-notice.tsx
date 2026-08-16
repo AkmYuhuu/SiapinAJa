@@ -10,32 +10,34 @@ export function EarlyAccessNotice() {
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-[80] flex items-start justify-center bg-black/40 px-4 py-[50vh] backdrop-blur-[2px]">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="early-access-title"
-        className="w-full max-w-md -translate-y-1/2 rounded-xl border border-border bg-surface p-6 shadow-[0_20px_60px_rgba(43,40,35,0.2)]"
-      >
-        <div className="flex size-11 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
-          <Icon name="spark" className="size-5" />
+    <div className="absolute inset-0 z-[80] pointer-events-auto bg-black/40 px-4 py-8 backdrop-blur-[2px]">
+      <div className="mx-auto flex min-h-full w-full max-w-6xl items-center justify-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="early-access-title"
+          className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-[0_20px_60px_rgba(43,40,35,0.2)]"
+        >
+          <div className="flex size-11 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
+            <Icon name="spark" className="size-5" />
+          </div>
+          <h2 id="early-access-title" className="mt-4 text-lg font-bold text-ink">
+            SiapinAja masih dalam Early Access
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+            Website ini sedang terus dikembangkan. Beberapa fitur, alur, dan tampilan masih bisa berubah,
+            diperbaiki, atau ditambahkan seiring update berikutnya.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
+            Kamu bisa menemukan perubahan, perbaikan bug, dan penyempurnaan fitur secara berkala selama fase Early Access.
+          </p>
+          <div className="mt-5 rounded-lg border border-border bg-surface-muted px-3.5 py-3 text-xs leading-relaxed text-ink-secondary">
+            Dengan melanjutkan, kamu memahami bahwa pengalaman Early Access belum sepenuhnya final.
+          </div>
+          <Button className="mt-5 w-full" size="lg" onClick={() => setOpen(false)}>
+            Paham, lanjutkan
+          </Button>
         </div>
-        <h2 id="early-access-title" className="mt-4 text-lg font-bold text-ink">
-          SiapinAja masih dalam Early Access
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
-          Website ini sedang terus dikembangkan. Beberapa fitur, alur, dan tampilan masih bisa berubah,
-          diperbaiki, atau ditambahkan seiring update berikutnya.
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
-          Kamu bisa menemukan perubahan, perbaikan bug, dan penyempurnaan fitur secara berkala selama fase Early Access.
-        </p>
-        <div className="mt-5 rounded-lg border border-border bg-surface-muted px-3.5 py-3 text-xs leading-relaxed text-ink-secondary">
-          Dengan melanjutkan, kamu memahami bahwa pengalaman Early Access belum sepenuhnya final.
-        </div>
-        <Button className="mt-5 w-full" size="lg" onClick={() => setOpen(false)}>
-          Paham, lanjutkan
-        </Button>
       </div>
     </div>
   );
