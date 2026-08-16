@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminActions, packages, redemptionCodes } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
@@ -56,15 +56,19 @@ export async function POST(req: Request) {
   }
 
   const packageRows = await db
-    .select({ id: packages.id, slug: packages.slug, name: packages.name, durationDays: packages.durationDays })
+    .select({
+      id: packages.id,
+      slug: packages.slug,
+      name: packages.name,
+      durationDays: packages.durationDays,
+      status: packages.status,
+    })
     .from(packages)
-    .where(eq(packages.slug, packageSlug))
+    .where(and(eq(packages.slug, packageSlug), eq(packages.status, "active")))
     .limit(1);
 
   const pkg = packageRows[0];
-  if (!pkg || !((await db.select({ id: packages.id }).from(packages).where(eq(packages.id, pkg.id)).limit(1)).length)) {
-    return jsonError(404, "PACKAGE_NOT_FOUND", "Paket tidak ditemukan.");
-  }
+  if (!pkg) return jsonError(404, "PACKAGE_NOT_FOUND", "Paket aktif tidak ditemukan.");
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -94,9 +98,12 @@ export async function POST(req: Request) {
     });
   });
 
-  return NextResponse.json({
-    ok: true,
-    package: { slug: pkg.slug, name: pkg.name, durationDays: pkg.durationDays },
-    codes: generated,
-  }, { status: 201 });
+  return NextResponse.json(
+    {
+      ok: true,
+      package: { slug: pkg.slug, name: pkg.name, durationDays: pkg.durationDays },
+      codes: generated,
+    },
+    { status: 201 },
+  );
 }
