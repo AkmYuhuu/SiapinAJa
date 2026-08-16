@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { EntryLoading } from "@/components/ui/entry-loading";
+import { PageTransition } from "@/components/ui/page-transition";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -33,7 +34,7 @@ export default function RootLayout({
       <body className="min-h-full">
         <Providers>
           <EntryLoading />
-          {children}
+          <PageTransition>{children}</PageTransition>
         </Providers>
       </body>
     </html>
