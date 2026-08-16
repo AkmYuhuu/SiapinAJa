@@ -4,6 +4,14 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type RegisterBody = {
+  email?: string;
+  password?: string;
+  name?: string;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+};
+
 export async function POST(req: Request) {
   const limiter = rateLimit(`register:${clientIp(req)}`, 10);
   if (!limiter.ok) {
@@ -16,7 +24,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = (await req.json().catch(() => null)) as { email?: string; password?: string; name?: string } | null;
+  const body = (await req.json().catch(() => null)) as RegisterBody | null;
   const email = body?.email?.trim().toLowerCase();
   const password = body?.password;
   const name = body?.name?.trim();
@@ -33,12 +41,25 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  if (body?.termsAccepted !== true || body?.privacyAccepted !== true) {
+    return NextResponse.json(
+      { error: { code: "CONSENT_REQUIRED", message: "Kamu wajib menyetujui Syarat & Ketentuan dan Kebijakan Privasi." } },
+      { status: 400 },
+    );
+  }
 
   const supabase = await createClient();
+  const acceptedAt = new Date().toISOString();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name } },
+    options: {
+      data: {
+        name,
+        terms_accepted_at: acceptedAt,
+        privacy_accepted_at: acceptedAt,
+      },
+    },
   });
 
   if (error) {
