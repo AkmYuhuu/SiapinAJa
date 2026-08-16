@@ -1,31 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
 
-const ENTRY_PATHS = new Set(["/", "/dashboard"]);
-
 export function EntryLoading() {
-  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!ENTRY_PATHS.has(pathname)) {
-      setVisible(false);
-      return;
-    }
-
+    // This component is mounted once by the root layout. Because Next.js
+    // keeps the root layout mounted during client-side navigation, an empty
+    // dependency list makes the intro run only after a full document load:
+    // refresh, direct URL entry, or a new tab.
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
-      setVisible(false);
-      return;
-    }
+    if (reducedMotion) return;
 
     setVisible(true);
     const timer = window.setTimeout(() => setVisible(false), 900);
     return () => window.clearTimeout(timer);
-  }, [pathname]);
+  }, []);
 
   if (!visible) return null;
 
