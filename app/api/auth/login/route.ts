@@ -25,12 +25,18 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as LoginBody | null;
-  const email = body?.email?.trim().toLowerCase();
+  const email = body?.email?.trim();
   const password = body?.password;
 
-  if (!email || !EMAIL_RE.test(email) || typeof password !== "string" || password.length === 0) {
+  if (!email || !EMAIL_RE.test(email)) {
     return NextResponse.json(
-      { error: { code: "BAD_REQUEST", message: "Email dan kata sandi wajib diisi." } },
+      { error: { code: "INVALID_EMAIL", message: "Format email tidak valid." } },
+      { status: 400 },
+    );
+  }
+  if (typeof password !== "string" || password.length === 0) {
+    return NextResponse.json(
+      { error: { code: "BAD_REQUEST", message: "Kata sandi wajib diisi." } },
       { status: 400 },
     );
   }
@@ -45,8 +51,16 @@ export async function POST(req: Request) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.user) {
+    const lower = (error?.message ?? "").toLowerCase();
+    if (lower.includes("email not confirmed") || lower.includes("email belum dikonfirmasi")) {
+      return NextResponse.json(
+        { error: { code: "EMAIL_NOT_CONFIRMED", message: "Email belum diverifikasi. Cek inbox untuk tautan verifikasi." } },
+        { status: 403 },
+      );
+    }
+
     return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Email atau kata sandi salah." } },
+      { error: { code: "INVALID_CREDENTIALS", message: "Email atau kata sandi salah." } },
       { status: 401 },
     );
   }
