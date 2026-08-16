@@ -17,6 +17,7 @@ interface CodeRow {
   packageName: string;
   redeemedAt: string | null;
   createdAt: string;
+  expiresAt: string;
 }
 
 export default function AdminRedemptionCodes() {
@@ -25,6 +26,7 @@ export default function AdminRedemptionCodes() {
   const [packageSlug, setPackageSlug] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [generated, setGenerated] = useState<string[]>([]);
+  const [generatedExpiresAt, setGeneratedExpiresAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState("");
@@ -53,6 +55,7 @@ export default function AdminRedemptionCodes() {
     setCreating(true);
     setMessage("");
     setGenerated([]);
+    setGeneratedExpiresAt(null);
 
     const response = await fetch("/api/admin/redemption-codes", {
       method: "POST",
@@ -68,6 +71,7 @@ export default function AdminRedemptionCodes() {
     }
 
     setGenerated(data.codes ?? []);
+    setGeneratedExpiresAt(data.expiresAt ?? null);
     setMessage(`${data.codes?.length ?? 0} kode berhasil dibuat.`);
     await load();
   }
@@ -79,7 +83,7 @@ export default function AdminRedemptionCodes() {
       <section className="rounded-lg border border-border bg-surface p-6">
         <h2 className="text-base font-bold text-ink">Buat kode aktivasi</h2>
         <p className="mt-1 text-sm text-ink-secondary">
-          Generate setelah pembayaran benar-benar kamu konfirmasi. Jangan kirim kode yang sama ke dua pembeli.
+          Generate setelah pembayaran benar-benar kamu konfirmasi. Kode otomatis kedaluwarsa sesuai durasi paket dan akan dibersihkan otomatis.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_140px_auto] sm:items-end">
@@ -121,7 +125,7 @@ export default function AdminRedemptionCodes() {
         </div>
 
         {selectedPackage && (
-          <p className="mt-3 text-xs text-ink-faint">Masa aktif: {selectedPackage.durationDays} hari sejak kode dipakai.</p>
+          <p className="mt-3 text-xs text-ink-faint">Kode berlaku {selectedPackage.durationDays} hari sejak dibuat; subscription tetap berjalan sesuai durasi saat kode berhasil dipakai.</p>
         )}
 
         {message && <p className="mt-4 text-sm text-ink-secondary">{message}</p>}
@@ -130,6 +134,11 @@ export default function AdminRedemptionCodes() {
           <div className="mt-5 rounded-md border border-accent bg-accent-soft p-4">
             <p className="text-sm font-semibold text-accent-ink">Kode baru — simpan sekarang</p>
             <p className="mt-1 text-xs text-ink-secondary">Kode asli tidak disimpan di database dan tidak akan ditampilkan lagi setelah halaman di-refresh.</p>
+            {generatedExpiresAt && (
+              <p className="mt-2 text-xs font-medium text-ink-secondary">
+                Expired: {new Date(generatedExpiresAt).toLocaleString("id-ID")}
+              </p>
+            )}
             <textarea
               readOnly
               value={generated.join("\n")}
@@ -145,7 +154,7 @@ export default function AdminRedemptionCodes() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-ink">Riwayat kode</h2>
-            <p className="mt-1 text-sm text-ink-secondary">Hanya prefix yang ditampilkan; kode penuh tidak disimpan plaintext.</p>
+            <p className="mt-1 text-sm text-ink-secondary">Kode expired akan dihapus otomatis oleh sistem. Riwayat hanya menampilkan kode yang masih tersimpan.</p>
           </div>
           <button type="button" onClick={() => void load()} className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-muted">
             Refresh
@@ -158,13 +167,14 @@ export default function AdminRedemptionCodes() {
           <p className="mt-5 text-sm text-ink-secondary">Belum ada kode.</p>
         ) : (
           <div className="mt-5 overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-border text-xs text-ink-faint">
                 <tr>
                   <th className="pb-2 pr-4 font-semibold">Kode</th>
                   <th className="pb-2 pr-4 font-semibold">Paket</th>
                   <th className="pb-2 pr-4 font-semibold">Status</th>
-                  <th className="pb-2 font-semibold">Dibuat</th>
+                  <th className="pb-2 pr-4 font-semibold">Dibuat</th>
+                  <th className="pb-2 font-semibold">Expired</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +187,8 @@ export default function AdminRedemptionCodes() {
                         {code.status === "active" ? "Aktif" : code.status === "redeemed" ? "Terpakai" : "Dicabut"}
                       </span>
                     </td>
-                    <td className="py-3 text-xs text-ink-secondary">{new Date(code.createdAt).toLocaleString("id-ID")}</td>
+                    <td className="py-3 pr-4 text-xs text-ink-secondary">{new Date(code.createdAt).toLocaleString("id-ID")}</td>
+                    <td className="py-3 text-xs text-ink-secondary">{new Date(code.expiresAt).toLocaleString("id-ID")}</td>
                   </tr>
                 ))}
               </tbody>
