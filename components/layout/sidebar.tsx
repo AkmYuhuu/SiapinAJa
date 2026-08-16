@@ -13,8 +13,11 @@ function Wordmark({ className = "" }: { className?: string }) {
       <span className="flex size-7 items-center justify-center rounded-md bg-accent">
         <Icon name="tools" className="size-4 text-white" />
       </span>
-      <span className="text-[15px] font-bold tracking-tight text-ink">
-        Siapin<span className="text-accent-strong">Aja</span>
+      <span className="flex flex-col leading-tight">
+        <span className="text-[15px] font-bold tracking-tight text-ink">
+          Siapin<span className="text-accent-strong">Aja</span>
+        </span>
+        <span className="text-[8px] font-semibold uppercase tracking-[0.11em] text-ink-faint">Early Access</span>
       </span>
     </Link>
   );
