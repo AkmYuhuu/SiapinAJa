@@ -8,24 +8,30 @@ export function EarlyAccessNotice() {
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    if (!open) return;
-
     const previousOverflow = document.body.style.overflow;
-    const previousOverscroll = document.documentElement.style.overscrollBehavior;
+    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
 
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overscrollBehavior = "none";
+    if (open) {
+      document.documentElement.style.scrollBehavior = "auto";
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.body.style.overflow = "hidden";
+    }
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      document.documentElement.style.overscrollBehavior = previousOverscroll;
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
     };
   }, [open]);
+
+  const close = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    setOpen(false);
+  };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/40 px-4 pt-16 backdrop-blur-[2px] sm:pt-20">
       <div
         role="dialog"
         aria-modal="true"
@@ -48,7 +54,7 @@ export function EarlyAccessNotice() {
         <div className="mt-5 rounded-lg border border-border bg-surface-muted px-3.5 py-3 text-xs leading-relaxed text-ink-secondary">
           Dengan melanjutkan, kamu memahami bahwa pengalaman Early Access belum sepenuhnya final.
         </div>
-        <Button className="mt-5 w-full" size="lg" onClick={() => setOpen(false)}>
+        <Button className="mt-5 w-full" size="lg" onClick={close}>
           Paham, lanjutkan
         </Button>
       </div>
