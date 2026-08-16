@@ -12,25 +12,53 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
-  if (res.status === 401) throw new ApiError("Session berakhir. Silakan masuk lagi.", 401);
-  if (res.status === 403) throw new ApiError("Akses ditolak untuk paket ini.", 403);
-  if (res.status === 429) throw new ApiError("Terlalu banyak permintaan. Coba lagi sebentar lagi.", 429);
-  if (!res.ok && res.status >= 500) throw new ApiError("Layanan sedang bermasalah. Coba lagi nanti.", res.status);
+
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const payload = contentType.includes("application/json")
+    ? await res.json().catch(() => null)
+    : null;
+  const serverMessage =
+    payload && typeof payload === "object" && "error" in payload && payload.error && typeof payload.error === "object" && "message" in payload.error
+      ? String(payload.error.message ?? "")
+      : "";
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new ApiError(serverMessage || "Email atau kata sandi salah.", 401);
+    }
+    if (res.status === 403) {
+      throw new ApiError(serverMessage || "Akses ditolak untuk paket ini.", 403);
+    }
+    if (res.status === 429) {
+      throw new ApiError(serverMessage || "Terlalu banyak permintaan. Coba lagi sebentar lagi.", 429);
+    }
+    if (res.status >= 500) {
+      throw new ApiError(serverMessage || "Layanan sedang bermasalah. Coba lagi nanti.", res.status);
+    }
+    throw new ApiError(serverMessage || "Permintaan tidak dapat diproses.", res.status);
+  }
+
+  return payload as T;
 }
 
 export const api = {
-  async getSession(): Promise<Session | null> { return http<Session | null>("/api/auth/session"); },
-  async getEntitlement(): Promise<Entitlement | null> { return http<Entitlement | null>("/api/account/entitlement"); },
+  async getSession(): Promise<Session | null> {
+    return http<Session | null>("/api/auth/session");
+  },
+  async getEntitlement(): Promise<Entitlement | null> {
+    return http<Entitlement | null>("/api/account/entitlement");
+  },
   async login(email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }): Promise<Session> {
     return http<Session>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password, ...consent }),
     });
   },
-  async logout(): Promise<void> { return http("/api/auth/logout", { method: "POST" }); },
-
+  async logout(): Promise<void> {
+    return http("/api/auth/logout", { method: "POST" });
+  },
   async verifyAccess(tool: { toolId: string; status: string }): Promise<VerifyResult> {
     try {
       const [session, entitlement] = await Promise.all([
