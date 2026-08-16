@@ -7,7 +7,6 @@ import type { ReactNode } from "react";
 import { SidebarContent } from "./sidebar";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
-import { WorkspaceIntro } from "@/components/ui/workspace-intro";
 import { getTool, getToolByRoute, getCategory, CATEGORIES, searchTools } from "@/lib/registry";
 import { listProjects } from "@/lib/projects";
 import type { Project } from "@/lib/projects";
@@ -43,7 +42,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const title = pageTitleForPath(pathname);
 
-  // ---- Global tool/project search (live typeahead) ----
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -82,14 +80,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <WorkspaceIntro />
-
-      {/* Desktop sidebar */}
       <aside className="app-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-surface lg:block">
         <SidebarContent />
       </aside>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
@@ -100,7 +94,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="app-shell-content lg:pl-60">
-        {/* Top bar */}
         <header className="app-topbar print-hide sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-bg/90 px-4 backdrop-blur lg:px-6">
           <button
             className="flex size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted lg:hidden"
