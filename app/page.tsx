@@ -7,7 +7,7 @@ import { LegalFooter } from "@/components/legal/legal-footer";
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="relative flex min-h-screen flex-col">
       <EarlyAccessNotice />
 
       {/* top nav */}
