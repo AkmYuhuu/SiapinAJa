@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "@/lib/api/client";
 import type { AccessReason } from "@/lib/api/types";
 import type { ToolDef } from "@/lib/registry";
 import { ToolLocked } from "@/components/tools/tool-locked";
 import { Icon } from "@/components/icons";
+import { useAuth } from "@/components/auth/auth-provider";
 
-// Client-side UX gate (spec §11). This is NOT the security layer - the
-// server-side requireToolAccess() guard is the authority. This component only
-// provides loading state, refresh behavior and error messaging.
+// Client-side UX gate only. The server-side requireToolAccess() guard in the
+// tool page remains the security boundary. This component intentionally uses
+// the already-loaded AuthProvider state instead of issuing duplicate
+// /api/auth/session and /api/account/entitlement requests on every tool.
 
 export function EntitlementGate({
   tool,
@@ -21,26 +22,45 @@ export function EntitlementGate({
   children: ReactNode;
   forceLocked?: boolean;
 }) {
-  const [state, setState] = useState<{ phase: "loading" | "open" | "locked"; reason?: AccessReason }>({ phase: "loading" });
+  const { session, entitlement, loading } = useAuth();
+  const [state, setState] = useState<{
+    phase: "loading" | "open" | "locked";
+    reason?: AccessReason;
+  }>({ phase: "loading" });
 
   useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
+    if (loading) {
       setState({ phase: "loading" });
-      const res = await api.verifyAccess({ toolId: tool.toolId, status: tool.status });
-      if (cancelled) return;
-      if (res.access.ok && !forceLocked) setState({ phase: "open" });
-      else
-        setState({
-          phase: "locked",
-          reason: res.access.ok === false ? res.access.reason : "expired",
-        });
-    };
-    check();
-    return () => {
-      cancelled = true;
-    };
-  }, [tool.toolId, tool.status, forceLocked]);
+      return;
+    }
+
+    if (!session) {
+      setState({ phase: "locked", reason: "no-session" });
+      return;
+    }
+
+    if (forceLocked || tool.status !== "active") {
+      setState({ phase: "locked", reason: "disabled" });
+      return;
+    }
+
+    if (!entitlement || entitlement.status !== "active") {
+      setState({ phase: "locked", reason: "expired" });
+      return;
+    }
+
+    if (new Date(entitlement.expiresAt).getTime() <= Date.now()) {
+      setState({ phase: "locked", reason: "expired" });
+      return;
+    }
+
+    if (!entitlement.tools.includes(tool.toolId)) {
+      setState({ phase: "locked", reason: "not-entitled" });
+      return;
+    }
+
+    setState({ phase: "open" });
+  }, [entitlement, loading, session, tool.status, tool.toolId, forceLocked]);
 
   if (state.phase === "loading") {
     return (
