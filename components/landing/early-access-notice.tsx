@@ -10,12 +10,12 @@ export function EarlyAccessNotice() {
   if (!open) return null;
 
   return (
-    <div className="absolute inset-x-0 top-0 z-[80] flex min-h-screen items-center justify-center bg-black/40 px-4 py-8 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-[80] flex items-start justify-center bg-black/40 px-4 py-[50vh] backdrop-blur-[2px]">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="early-access-title"
-        className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-[0_20px_60px_rgba(43,40,35,0.2)]"
+        className="w-full max-w-md -translate-y-1/2 rounded-xl border border-border bg-surface p-6 shadow-[0_20px_60px_rgba(43,40,35,0.2)]"
       >
         <div className="flex size-11 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
           <Icon name="spark" className="size-5" />
