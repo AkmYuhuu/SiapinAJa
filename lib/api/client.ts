@@ -5,6 +5,7 @@
 // locked whenever the server check cannot succeed.
 
 import type { Entitlement, Session, AccessState, VerifyResult } from "./types";
+
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -14,36 +15,22 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401) throw new ApiError("Session berakhir. Silakan masuk lagi.", 401);
   if (res.status === 403) throw new ApiError("Akses ditolak untuk paket ini.", 403);
   if (res.status === 429) throw new ApiError("Terlalu banyak permintaan. Coba lagi sebentar lagi.", 429);
-  if (!res.ok && res.status >= 500) {
-    throw new ApiError("Layanan sedang bermasalah. Coba lagi nanti.", res.status);
-  }
+  if (!res.ok && res.status >= 500) throw new ApiError("Layanan sedang bermasalah. Coba lagi nanti.", res.status);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
 export const api = {
-  async getSession(): Promise<Session | null> {
-    return http<Session | null>("/api/auth/session");
+  async getSession(): Promise<Session | null> { return http<Session | null>("/api/auth/session"); },
+  async getEntitlement(): Promise<Entitlement | null> { return http<Entitlement | null>("/api/account/entitlement"); },
+  async login(email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }): Promise<Session> {
+    return http<Session>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password, ...consent }),
+    });
   },
+  async logout(): Promise<void> { return http("/api/auth/logout", { method: "POST" }); },
 
-  async getEntitlement(): Promise<Entitlement | null> {
-    return http<Entitlement | null>("/api/account/entitlement");
-  },
-
-  async login(email: string, password: string): Promise<Session> {
-    return http<Session>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
-  },
-
-  async logout(): Promise<void> {
-    return http("/api/auth/logout", { method: "POST" });
-  },
-
-  /**
-   * One combined verify: session + entitlement in one call. If anything
-   * cannot be verified (offline, error, no session), premium access is off
-   * (spec §4.4: offline means premium tools stay locked). This is a UX layer -
-   * the server-side guard is the security authority.
-   */
   async verifyAccess(tool: { toolId: string; status: string }): Promise<VerifyResult> {
     try {
       const [session, entitlement] = await Promise.all([
@@ -53,34 +40,17 @@ export const api = {
       return { access: evaluate(session, entitlement, tool), session, entitlement };
     } catch {
       const offline = typeof navigator !== "undefined" && !navigator.onLine;
-      return {
-        access: { ok: false, reason: offline ? "offline" : "error" },
-        session: null,
-        entitlement: null,
-      };
+      return { access: { ok: false, reason: offline ? "offline" : "error" }, session: null, entitlement: null };
     }
   },
 };
 
-function evaluate(
-  session: Session | null,
-  entitlement: Entitlement | null,
-  tool: { toolId: string; status: string },
-): AccessState {
+function evaluate(session: Session | null, entitlement: Entitlement | null, tool: { toolId: string; status: string }): AccessState {
   if (!session) return { ok: false, reason: "no-session" };
-  if (!entitlement || entitlement.status !== "active") {
-    return { ok: false, reason: "expired" };
-  }
-  const now = Date.now();
-  if (new Date(entitlement.expiresAt).getTime() <= now) {
-    return { ok: false, reason: "expired" };
-  }
-  if (tool.status !== "active") {
-    return { ok: false, reason: "disabled" };
-  }
-  if (!entitlement.tools.includes(tool.toolId)) {
-    return { ok: false, reason: "not-entitled" };
-  }
+  if (!entitlement || entitlement.status !== "active") return { ok: false, reason: "expired" };
+  if (new Date(entitlement.expiresAt).getTime() <= Date.now()) return { ok: false, reason: "expired" };
+  if (tool.status !== "active") return { ok: false, reason: "disabled" };
+  if (!entitlement.tools.includes(tool.toolId)) return { ok: false, reason: "not-entitled" };
   return { ok: true };
 }
 
