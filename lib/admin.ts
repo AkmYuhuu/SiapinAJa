@@ -5,13 +5,25 @@ import { db } from "@/lib/db";
 import { userRoles } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 
-// Server-side admin authorization (spec §17-§18). Every admin route/API must
-// call requireAdmin() and deny with 403 when it fails. A hidden menu is NOT
-// authorization - users can still call endpoints directly.
+// Server-side admin authorization. Every admin route/API must call
+// requireAdmin(). A hidden menu is not authorization.
+//
+// Normal admins are stored in user_roles. For a solo-developer deployment,
+// ADMIN_EMAILS can be used as a bootstrap allowlist so the owner does not
+// need to manually edit user_roles in Supabase.
 
 export type AdminCheckResult =
   | { ok: true }
   | { ok: false; reason: "no-session" | "forbidden" | "error" };
+
+function configuredAdminEmails(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
 
 export async function requireAdmin(): Promise<AdminCheckResult> {
   let user;
@@ -26,6 +38,9 @@ export async function requireAdmin(): Promise<AdminCheckResult> {
   }
 
   if (!user) return { ok: false, reason: "no-session" };
+
+  const email = user.email?.trim().toLowerCase();
+  if (email && configuredAdminEmails().has(email)) return { ok: true };
 
   try {
     const rows = await db
