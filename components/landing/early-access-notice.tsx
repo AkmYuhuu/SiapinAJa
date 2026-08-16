@@ -1,30 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 
 export function EarlyAccessNotice() {
   const [open, setOpen] = useState(true);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const historyObject = window.history;
+    const previousRestoration = historyObject.scrollRestoration;
     const previousOverflow = document.body.style.overflow;
     const previousScrollBehavior = document.documentElement.style.scrollBehavior;
 
+    historyObject.scrollRestoration = "manual";
+    document.documentElement.style.scrollBehavior = "auto";
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
     if (open) {
-      document.documentElement.style.scrollBehavior = "auto";
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.body.style.overflow = "hidden";
     }
 
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+
     return () => {
+      window.cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.scrollBehavior = previousScrollBehavior;
+      historyObject.scrollRestoration = previousRestoration;
     };
   }, [open]);
 
   const close = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     setOpen(false);
   };
 
