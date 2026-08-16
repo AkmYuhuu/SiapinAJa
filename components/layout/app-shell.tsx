@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { SidebarContent } from "./sidebar";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
+import { WorkspaceIntro } from "@/components/ui/workspace-intro";
 import { getTool, getToolByRoute, getCategory, CATEGORIES, searchTools } from "@/lib/registry";
 import { listProjects } from "@/lib/projects";
 import type { Project } from "@/lib/projects";
@@ -81,6 +82,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <WorkspaceIntro />
+
       {/* Desktop sidebar */}
       <aside className="app-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-surface lg:block">
         <SidebarContent />
@@ -204,41 +207,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </form>
           <div className="ml-auto flex items-center gap-1 md:ml-2">
-            <a
-              href="/help"
-              className="hidden size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted sm:flex"
-              title="Bantuan"
-              aria-label="Bantuan"
-            >
-              <Icon name="help" className="size-4" />
-            </a>
-            <button
-              onClick={() => router.push("/history")}
-              className="flex size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted"
-              title="Riwayat"
-              aria-label="Riwayat"
-            >
-              <Icon name="history" className="size-4" />
-            </button>
-            <button
-              onClick={() => router.push("/account")}
-              className="flex size-8 items-center justify-center rounded-full bg-accent-soft font-bold text-accent-ink"
-              title="Akun"
-              aria-label="Akun"
-            >
-              {(session?.name ?? "?").slice(0, 1).toUpperCase()}
-            </button>
+            <a href="/help" className="hidden size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted sm:flex" title="Bantuan" aria-label="Bantuan"><Icon name="help" className="size-4" /></a>
+            <button onClick={() => router.push("/history")} className="flex size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted" title="Riwayat" aria-label="Riwayat"><Icon name="history" className="size-4" /></button>
+            <button onClick={() => router.push("/account")} className="flex size-8 items-center justify-center rounded-full bg-accent-soft font-bold text-accent-ink" title="Akun" aria-label="Akun">{(session?.name ?? "?").slice(0, 1).toUpperCase()}</button>
           </div>
         </header>
 
         <main className="app-main mx-auto w-full max-w-6xl px-4 py-6 lg:px-8">
           {!isDashboard && (
             <div className="mb-5">
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard")}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-ink-secondary hover:bg-surface-muted hover:text-ink"
-              >
+              <button type="button" onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-ink-secondary hover:bg-surface-muted hover:text-ink">
                 <Icon name="chevron" className="size-3.5 rotate-180" />
                 Kembali ke Beranda
               </button>
