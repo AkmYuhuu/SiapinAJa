@@ -19,11 +19,13 @@ export const redemptionCodes = pgTable(
     redeemedAt: timestamp("redeemed_at", { withTimezone: true, mode: "date" }),
     subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
   },
   (t) => [
     check("redemption_codes_duration_positive_check", sql`${t.durationDays} > 0`),
     check("redemption_codes_status_check", sql`${t.status} in ('active', 'redeemed', 'revoked')`),
     index("redemption_codes_status_idx").on(t.status),
     index("redemption_codes_package_id_idx").on(t.packageId),
+    index("redemption_codes_expires_at_idx").on(t.expiresAt),
   ],
 );
