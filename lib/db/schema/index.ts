@@ -7,3 +7,4 @@ export * from "./payments";
 export * from "./webhook-events";
 export * from "./admin-actions";
 export * from "./user-roles";
+export * from "./redemption-codes";
