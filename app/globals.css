@@ -53,6 +53,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.page-enter {
+  animation: page-enter 220ms ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* A4 document preview */
 .doc-page {
   width: 210mm;
@@ -73,8 +88,6 @@ body {
   body {
     background: white;
   }
-  /* Hide all app chrome with display:none so hidden content never
-     generates extra blank pages. */
   .print-hide,
   .app-sidebar,
   .app-topbar,
@@ -107,8 +120,6 @@ body {
     min-height: auto;
     width: 210mm;
   }
-
-  /* Thermal "nota" print: show only the selected size, hide the A4 page. */
   .receipt-print {
     display: none !important;
   }
@@ -120,8 +131,6 @@ body {
   html[data-print-mode="58"] .doc-page {
     display: none !important;
   }
-
-  /* Creator sheet tools (a4-layout): neutralize preview chrome, break per page. */
   .print-clean {
     overflow: visible !important;
     border: none !important;
@@ -139,7 +148,6 @@ body {
   }
 }
 
-/* Thermal receipt ("nota") - hidden on screen, printed via Print > Nota. */
 .receipt-print {
   display: none;
 }
@@ -199,11 +207,11 @@ body {
   padding-top: 0.35em;
 }
 
-/* thin scrollbars for panels */
 .scroll-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 .scroll-thin::-webkit-scrollbar-thumb {
   background: #d6d2c8;
   border-radius: 4px;
@@ -235,4 +243,12 @@ body {
 
 .anim-fade-in {
   animation: fade-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .anim-fade-up,
+  .anim-fade-in {
+    animation: none !important;
+  }
 }
