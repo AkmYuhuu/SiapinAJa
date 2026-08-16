@@ -58,8 +58,6 @@ export default function PricingPage() {
         <h1 className="text-2xl font-bold tracking-tight text-ink">Paket & Billing</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
           Satu akun, semua data kerja di perangkatmu. Pilih paket untuk membuka tools terkunci.
-          <br />
-          <em className="text-ink-faint">(Ratecard dan pembayaran menyusul di fase berikutnya - halaman ini pratinjau.)</em>
         </p>
       </header>
 
