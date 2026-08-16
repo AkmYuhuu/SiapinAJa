@@ -38,13 +38,20 @@ export async function POST(req: Request) {
           packageId: redemptionCodes.packageId,
           durationDays: redemptionCodes.durationDays,
           status: redemptionCodes.status,
+          expiresAt: redemptionCodes.expiresAt,
           packageSlug: packages.slug,
           packageName: packages.name,
           packageStatus: packages.status,
         })
         .from(redemptionCodes)
         .innerJoin(packages, eq(redemptionCodes.packageId, packages.id))
-        .where(and(eq(redemptionCodes.codeHash, codeHash), eq(redemptionCodes.status, "active")))
+        .where(
+          and(
+            eq(redemptionCodes.codeHash, codeHash),
+            eq(redemptionCodes.status, "active"),
+            gt(redemptionCodes.expiresAt, now),
+          ),
+        )
         .limit(1)
         .for("update");
 
@@ -108,7 +115,7 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_OR_USED_CODE") {
-      return errorResponse(400, "INVALID_OR_USED_CODE", "Kode tidak valid, sudah dipakai, atau paketnya tidak aktif.");
+      return errorResponse(400, "INVALID_OR_USED_CODE", "Kode tidak valid, sudah dipakai, sudah expired, atau paketnya tidak aktif.");
     }
     console.error("Redeem code failed", error);
     return errorResponse(500, "REDEEM_FAILED", "Kode belum dapat diproses. Coba lagi nanti.");
