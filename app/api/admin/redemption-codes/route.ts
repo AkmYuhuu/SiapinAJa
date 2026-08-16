@@ -24,23 +24,30 @@ export async function GET() {
   const admin = await requireAdmin();
   if (!admin.ok) return jsonError(admin.reason === "no-session" ? 401 : 403, "FORBIDDEN", "Akses admin diperlukan.");
 
-  const rows = await db
-    .select({
-      id: redemptionCodes.id,
-      codePrefix: redemptionCodes.codePrefix,
-      status: redemptionCodes.status,
-      durationDays: redemptionCodes.durationDays,
-      packageSlug: packages.slug,
-      packageName: packages.name,
-      redeemedAt: redemptionCodes.redeemedAt,
-      createdAt: redemptionCodes.createdAt,
-    })
-    .from(redemptionCodes)
-    .innerJoin(packages, eq(redemptionCodes.packageId, packages.id))
-    .orderBy(desc(redemptionCodes.createdAt))
-    .limit(100);
+  const [codes, packageRows] = await Promise.all([
+    db
+      .select({
+        id: redemptionCodes.id,
+        codePrefix: redemptionCodes.codePrefix,
+        status: redemptionCodes.status,
+        durationDays: redemptionCodes.durationDays,
+        packageSlug: packages.slug,
+        packageName: packages.name,
+        redeemedAt: redemptionCodes.redeemedAt,
+        createdAt: redemptionCodes.createdAt,
+      })
+      .from(redemptionCodes)
+      .innerJoin(packages, eq(redemptionCodes.packageId, packages.id))
+      .orderBy(desc(redemptionCodes.createdAt))
+      .limit(100),
+    db
+      .select({ slug: packages.slug, name: packages.name, durationDays: packages.durationDays })
+      .from(packages)
+      .where(eq(packages.status, "active"))
+      .orderBy(packages.name),
+  ]);
 
-  return NextResponse.json({ codes: rows });
+  return NextResponse.json({ codes, packages: packageRows });
 }
 
 export async function POST(req: Request) {
@@ -61,7 +68,6 @@ export async function POST(req: Request) {
       slug: packages.slug,
       name: packages.name,
       durationDays: packages.durationDays,
-      status: packages.status,
     })
     .from(packages)
     .where(and(eq(packages.slug, packageSlug), eq(packages.status, "active")))
