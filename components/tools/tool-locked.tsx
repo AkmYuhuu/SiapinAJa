@@ -42,7 +42,7 @@ export function ToolLocked({ tool, reason }: { tool: ToolDef; reason: AccessReas
           <Link href="/pricing">
             <Button size="lg">Lihat Paket</Button>
           </Link>
-          <Link href={reason === "no-session" ? "/login" : "/"}>
+          <Link href={reason === "no-session" ? "/login" : "/dashboard"}>
             <Button variant="secondary" size="lg">
               {reason === "no-session" ? "Masuk" : "Kembali ke Beranda"}
             </Button>
