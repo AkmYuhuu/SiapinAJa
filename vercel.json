@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-redemption-codes",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
