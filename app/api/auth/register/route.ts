@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { validateEmailAddress } from "@/lib/auth/email-validation";
+import { verifyTurnstile } from "@/lib/security/turnstile";
 
 type RegisterBody = {
   email?: string;
@@ -9,6 +10,7 @@ type RegisterBody = {
   name?: string;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  captchaToken?: string;
 };
 
 export async function POST(req: Request) {
@@ -27,6 +29,15 @@ export async function POST(req: Request) {
   const rawEmail = body?.email ?? "";
   const password = body?.password;
   const name = body?.name?.trim();
+
+  const captcha = await verifyTurnstile(body?.captchaToken, req);
+  if (!captcha.ok) {
+    const status = captcha.reason === "not_configured" ? 503 : 400;
+    const message = captcha.reason === "not_configured"
+      ? "Proteksi anti-bot belum dikonfigurasi. Silakan coba lagi nanti."
+      : "Verifikasi anti-bot gagal. Silakan selesaikan verifikasi lalu coba lagi.";
+    return NextResponse.json({ error: { code: "CAPTCHA_REQUIRED", message } }, { status });
+  }
 
   if (typeof password !== "string" || !name) {
     return NextResponse.json(
