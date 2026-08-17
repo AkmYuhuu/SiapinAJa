@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 interface Conversation { id: string; userName: string; subject: string | null; status: string; type: string; updatedAt: string; }
 interface Message { id: string; senderType: "user" | "admin"; message: string; createdAt: string; }
@@ -28,37 +28,58 @@ export default function AdminSupportInbox() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
-  const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
     if (!selected) { setUserTyping(false); return; }
+    const activeConversationId = selected;
     const supabase = createSupabaseClient();
-    const channel = supabase.channel(`support-conversation:${selected}`);
+    const channel = supabase.channel(`support-conversation:${activeConversationId}`);
     channelRef.current = channel;
+
+    const clearFallback = () => {
+      if (fallbackPollTimer.current) { clearInterval(fallbackPollTimer.current); fallbackPollTimer.current = null; }
+    };
+    const startFallback = () => {
+      if (fallbackPollTimer.current) return;
+      fallbackPollTimer.current = setInterval(() => { void openConversation(activeConversationId, true); }, 1500);
+    };
 
     channel
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload?.senderType !== "user") return;
-        setUserTyping(Boolean(payload?.isTyping));
-        if (payload?.isTyping) window.setTimeout(() => setUserTyping(false), 1800);
+        if (typingHideTimer.current) clearTimeout(typingHideTimer.current);
+        const typing = Boolean(payload?.isTyping);
+        setUserTyping(typing);
+        if (typing) typingHideTimer.current = setTimeout(() => setUserTyping(false), 1800);
       })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages", filter: `conversation_id=eq.${selected}` }, (payload) => {
-        const row = payload.new as { id: string; sender_type: Message["senderType"]; message: string; created_at: string };
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload) => {
+        const row = payload.new as { id: string; conversation_id: string; sender_type: Message["senderType"]; message: string; created_at: string };
+        if (row.conversation_id !== activeConversationId) return;
         setMessages((current) => mergeMessage(current, { id: row.id, senderType: row.sender_type, message: row.message, createdAt: row.created_at }));
         if (row.sender_type === "user") setUserTyping(false);
         void load();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "support_conversations", filter: `id=eq.${selected}` }, (payload) => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "support_conversations" }, (payload) => {
         const row = payload.new as { id: string; status: string; updated_at: string };
+        if (row.id !== activeConversationId) return;
         setConversations((current) => current.map((item) => item.id === row.id ? { ...item, status: row.status, updatedAt: row.updated_at } : item));
       })
-      .subscribe();
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_conversations" }, () => { void load(); })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") clearFallback();
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") startFallback();
+      });
 
     return () => {
       if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
+      if (typingHideTimer.current) clearTimeout(typingHideTimer.current);
+      clearFallback();
       channelRef.current = null;
       setUserTyping(false);
       void supabase.removeChannel(channel);
@@ -76,27 +97,33 @@ export default function AdminSupportInbox() {
   }
 
   async function openConversation(id: string, silent = false) {
-    setSelected(id);
+    if (!silent) setLoading(true);
     const response = await fetch(`/api/admin/support?conversationId=${encodeURIComponent(id)}`, { cache: "no-store" });
     const data = await response.json().catch(() => null);
-    if (!response.ok) return;
-    setMessages(data.messages ?? []);
+    if (!response.ok) { if (!silent) setLoading(false); return; }
+    setSelected(id);
+    if (silent) {
+      if (Array.isArray(data.messages)) setMessages((current) => data.messages.reduce((acc: Message[], item: Message) => mergeMessage(acc, item), current));
+    } else {
+      setMessages(Array.isArray(data.messages) ? data.messages : []);
+    }
     setApplication(data.application ?? null);
     setNote(data.application?.adminNote ?? "");
     if (!silent) setLoading(false);
   }
 
-  const publishTyping = (isTyping: boolean) => {
+  function publishTyping(isTyping: boolean) {
     if (!channelRef.current || !selected) return;
     void channelRef.current.send({ type: "broadcast", event: "typing", payload: { senderType: "admin", isTyping } });
-  };
+  }
 
-  const handleReplyChange = (value: string) => {
+  function handleReplyChange(value: string) {
     setReply(value);
+    if (!selected) return;
     publishTyping(Boolean(value.trim()));
     if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
     typingStopTimer.current = setTimeout(() => publishTyping(false), 1200);
-  };
+  }
 
   async function sendReply(event?: React.FormEvent) {
     event?.preventDefault();
