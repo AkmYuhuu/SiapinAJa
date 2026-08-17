@@ -67,7 +67,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col bg-bg">
       <main className="mx-auto flex w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">
         <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_20px_70px_rgba(43,40,35,0.09)] lg:grid-cols-[42%_58%] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)]">
-          <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(255,224,188,0.95),transparent_38%),linear-gradient(145deg,#ffb35a_0%,#ff7617_45%,#f04a08_100%)] px-8 py-10 text-white lg:flex lg:flex-col lg:items-center lg:text-center">
+          <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(255,224,188,0.95),transparent_38%),linear-gradient(145deg,#ffb35a_0%,#ff7617_45%,#f04a08_100%)] px-8 py-10 text-white lg:flex lg:flex-col lg:items-center lg:justify-center lg:text-center">
             <div className="absolute -right-24 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-24 -left-24 size-72 rounded-full bg-white/10 blur-2xl" />
 
@@ -87,7 +87,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="relative z-10 mt-10 grid w-full max-w-md grid-cols-2 gap-3 text-left">
+            <div className="relative z-10 mt-10 grid w-full max-w-md grid-cols-2 gap-3 text-center">
               {[
                 ["calculator", "Hitung harga"],
                 ["file", "Buat dokumen"],
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 ["download", "Ambil hasil"],
               ].map(([icon, label]) => (
                 <div key={label} className="rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-white/90 text-accent-strong">
+                  <div className="mx-auto flex size-9 items-center justify-center rounded-lg bg-white/90 text-accent-strong">
                     <Icon name={icon as "calculator" | "file" | "camera" | "download"} className="size-4.5" />
                   </div>
                   <p className="mt-2 text-xs font-semibold text-white/90">{label}</p>
@@ -103,7 +103,7 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <div className="relative z-10 mt-auto pt-12 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+            <div className="relative z-10 mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
               Kerja lebih siap. Lebih sederhana.
             </div>
           </section>
