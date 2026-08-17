@@ -1,36 +1,77 @@
 # SiapinAja
 
-Toolkit berbasis web untuk UMKM, freelancer, dan creator/seller. Semua tool berjalan 100% di browser (client-side), hasil kerja tersimpan di perangkat (IndexedDB), dan bisa diekspor sebagai file JSON untuk dipindahkan atau diimpor kembali.
+Toolkit berbasis web untuk UMKM, freelancer, dan creator/seller. Tool berjalan di browser, sedangkan autentikasi, entitlement, pembayaran, Early Access, dan support ditangani melalui Next.js API routes dan Supabase.
 
 ## Tech Stack
 
-- Next.js 16 (App Router) + TypeScript + Turbopack
-- IndexedDB (proyek, prefs) via `lib/db.ts` & `lib/projects.ts`
-- jsPDF / html2canvas untuk ekspor PDF dan gambar
-- Antarmuka: Tailwind CSS, komponen sendiri di `components/ui`
+- Next.js 16 App Router + TypeScript + Turbopack
+- Supabase Auth + PostgreSQL + RLS
+- Drizzle ORM + Drizzle Kit untuk schema dan migration
+- IndexedDB untuk project dan preferensi lokal
+- jsPDF, ExcelJS, JSZip, html-to-image untuk fitur ekspor dan pengolahan file
+- Tailwind CSS + komponen UI sendiri
 
 ## Struktur
 
-```
-app/(app)/          Halaman aplikasi (dashboard, tools, projects, favorit, riwayat)
-components/tools    UI shell + halaman tool per kategori (umkm, freelancer, creator-seller)
-lib/                Registry tool, storage proyek, logika kalkulasi, ekspor
-lib/api/            Klien API & mock untuk sesi/entitlement (pratinjau backend)
+```text
+app/
+  (app)/            Halaman utama aplikasi dan tools
+  admin/            Dashboard admin dan support inbox
+  api/              Route handler auth, account, admin, support, redeem, Early Access, webhook, dan cron
+  login/            Halaman masuk
+  register/         Halaman pendaftaran
+  redeem/           Aktivasi kode
+  terms/            Syarat & Ketentuan
+  privacy/          Kebijakan Privasi
+components/
+  admin/            Komponen admin support dan redemption
+  auth/             AuthProvider dan entitlement gate
+  brand/            BrandMark bersama
+  documents/        Workspace dan preview dokumen
+  early-access/     UI Early Access
+  landing/          Komponen landing page
+  layout/           App shell dan sidebar
+  support/          Support widget realtime
+  tools/            Shell, registry UI, dan halaman setiap tool
+  ui/               Komponen UI generik
+lib/
+  api/              API client dan type contract frontend
+  auth/             Validasi auth tambahan
+  db/               Drizzle connection, schema, relations, RLS, seed
+  documents/        Model dan export dokumen
+  supabase/         Client, server, proxy, dan service client
+  *.ts              Registry, entitlement, storage lokal, kalkulasi, format, export, dan utilitas domain
+public/
+  brand/            Asset brand SiapinAja
+  asset 1.png       Asset visual landing
+
+driz​zle/
+  *.sql              Migration SQL
+  meta/              Snapshot dan journal Drizzle
 ```
 
 ## Scripts
 
 ```bash
-npm run dev        # development server (http://localhost:3000)
+npm run dev        # development server
 npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint .
+npm run db:generate
+npm run db:migrate
+npm run db:push
+npm run db:seed
+npm run db:rls
 ```
+
+## Database
+
+Supabase adalah source of truth untuk auth, profile, entitlement, subscription, Early Access, support, redemption code, dan webhook event. Migration yang menjadi source kontrol ada di `drizzle/`.
 
 ## Registry Tool
 
-Daftar tool (id, kategori, rute) terpusat di `lib/registry.ts`. `tool_id` di sini harus sama persis dengan registry backend (`Backend_v3.md`) — rute URL tidak boleh berubah, sedangkan `toolId` menjadi identitas permission/entitlement.
+Daftar tool terpusat di `lib/registry.ts`. Identitas `toolId` harus konsisten dengan permission dan entitlement backend.
 
 ## Environment
 
-Salin `.env.example` menjadi `.env` saat mengisi variabel backend (Supabase, payment webhook). Tanpa env, app berjalan dalam mode pratinjau dengan mock API.
+Salin `.env.example` ke `.env.local`, lalu isi kredensial Supabase dan secret server-side. Jangan commit secret produksi.
