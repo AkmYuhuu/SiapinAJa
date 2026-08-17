@@ -46,6 +46,7 @@ export default function AdminSupportInbox() {
   const [sending, setSending] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
   const [notice, setNotice] = useState("");
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
   const adminNotifyRef = useRef<RealtimeChannel | null>(null);
   const conversationRef = useRef<RealtimeChannel | null>(null);
@@ -153,6 +154,7 @@ export default function AdminSupportInbox() {
     if (!response.ok) return;
     setSelected(id);
     setSelectedUserId(data.conversation.userId ?? "");
+    setSelectedConversation(data.conversation as Conversation);
     setMessages(Array.isArray(data.messages) ? data.messages : []);
     setApplication(data.application ?? null);
     setNote(data.application?.adminNote ?? "");
@@ -166,6 +168,7 @@ export default function AdminSupportInbox() {
       publishTyping(false);
       setSelected("");
       setSelectedUserId("");
+      setSelectedConversation(null);
       setMessages([]);
       setApplication(null);
       setNote("");
@@ -212,9 +215,20 @@ export default function AdminSupportInbox() {
     const data = await response.json().catch(() => null);
     setSending(false);
     if (!response.ok) return;
+    const nextStatus = action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info";
+    setApplication((current) => current ? { ...current, status: nextStatus, adminNote: note } : current);
+    setSelectedConversation((current) => current ? { ...current, status: "resolved", updatedAt: new Date().toISOString() } : current);
+    void userNotifyRef.current?.send({ type: "broadcast", event: "early_access", payload: { conversationId: application.conversationId, status: nextStatus, adminNote: note } });
+    const support = await fetch(`/api/admin/support?conversationId=${encodeURIComponent(application.conversationId)}`, { cache: "no-store" });
+    const supportData = await support.json().catch(() => null);
+    if (support.ok) {
+      setMessages(Array.isArray(supportData.messages) ? supportData.messages : []);
+      setSelectedConversation(supportData.conversation as Conversation);
+      setSelected(application.conversationId);
+      setSelectedUserId(supportData.conversation?.userId ?? selectedUserId);
+      setApplication(supportData.application ?? null);
+    }
     await load();
-    await openConversation(application.conversationId, true);
-    if (data) setApplication((current) => current ? { ...current, status: action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info", adminNote: note } : current);
   }
 
   const unreadCount = conversations.filter(isUnread).length;
@@ -229,7 +243,7 @@ export default function AdminSupportInbox() {
       </section>
       <section className="min-h-0 overflow-hidden rounded-lg border border-border bg-surface lg:h-full">
         {!selected ? <div className="flex h-full min-h-[520px] items-center justify-center p-6 text-center text-sm text-ink-secondary">Pilih percakapan untuk melihat detail.</div> : <div className="flex h-full min-h-[520px] min-w-0 flex-col">
-          <div className="shrink-0 border-b border-border p-4"><h2 className="text-base font-bold text-ink">{application ? application.businessName : "Percakapan"}</h2><p className="mt-1 text-xs text-ink-secondary">{application ? `${application.fullName} · ${application.requestedPackageSlug}` : "Support pengguna"}</p></div>
+          <div className="shrink-0 border-b border-border p-4"><h2 className="text-base font-bold text-ink">{application ? application.businessName : selectedConversation?.subject ?? "Percakapan"}</h2><p className="mt-1 text-xs text-ink-secondary">{application ? `${application.fullName} · ${application.requestedPackageSlug}` : selectedConversation?.userName ?? "Support pengguna"}</p></div>
           {application && <div className="shrink-0 max-h-64 overflow-y-auto grid gap-3 border-b border-border bg-surface-muted/40 p-4 text-xs text-ink-secondary sm:grid-cols-2"><p><strong className="text-ink">Jenis usaha:</strong> {application.businessType}</p><p><strong className="text-ink">Lama usaha:</strong> {application.businessAge}</p><p><strong className="text-ink">Produk/jasa:</strong> {application.productsServices}</p><p><strong className="text-ink">Jual lewat:</strong> {application.salesChannels}</p><label className="sm:col-span-2"><span className="font-semibold text-ink">Catatan admin</span><textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-xs text-ink" placeholder="Catatan internal atau instruksi tambahan…" /></label><div className="flex flex-wrap gap-2 sm:col-span-2"><button type="button" disabled={sending || application.status === "approved"} onClick={() => void review("approve")} className="rounded-md bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">Approve 30 hari</button><button type="button" disabled={sending || application.status === "rejected"} onClick={() => void review("needs_info")} className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-ink hover:bg-surface-muted">Minta info</button><button type="button" disabled={sending || application.status === "rejected"} onClick={() => void review("reject")} className="rounded-md border border-danger px-3 py-2 text-xs font-semibold text-danger hover:bg-danger-soft">Reject</button><span className="rounded-full bg-surface-muted px-2 py-1 text-[10px] font-semibold text-ink-secondary">Status: {application.status}</span></div></div>}
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">{messages.map((item) => <div key={item.id} className={`flex ${item.senderType === "admin" ? "justify-end" : "justify-start"}`}><div className={`max-w-[78%] rounded-lg px-3 py-2 text-xs leading-relaxed ${item.senderType === "admin" ? "bg-accent text-white" : "bg-surface-muted text-ink"}`}>{item.message}</div></div>)}{messages.length === 0 && <p className="text-sm text-ink-faint">Belum ada pesan.</p>}{userTyping && <TypingDots label="User sedang mengetik" />}</div>
           <form className="shrink-0 border-t border-border p-3" onSubmit={(e) => void sendReply(e)}><div className="flex items-end gap-2"><textarea value={reply} onChange={(e) => handleReplyChange(e.target.value)} rows={2} placeholder="Tulis balasan ke user…" className="min-h-10 flex-1 resize-none rounded-md border border-border bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-faint" /><button type="submit" disabled={sending || !reply.trim()} className="rounded-md bg-accent px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">{sending ? "Mengirim…" : "Kirim"}</button></div></form>

@@ -112,6 +112,14 @@ export function SupportWidget() {
         void loadConversations();
         void loadEarlyAccess();
       })
+      .on("broadcast", { event: "early_access" }, ({ payload }) => {
+        const status = String(payload?.status ?? "");
+        if (!status) return;
+        setEarlyStatus(status);
+        setEarlyReason(String(payload?.adminNote ?? ""));
+        showNotice(status === "approved" ? "Early Access disetujui" : status === "rejected" ? "Pengajuan Early Access ditolak" : "Ada pembaruan Early Access", String(payload?.conversationId ?? earlyConversationIdRef.current), "early_access");
+        void loadEarlyAccess();
+      })
       .on("broadcast", { event: "message" }, ({ payload }) => {
         const incoming = payload?.message as Message | undefined;
         const incomingConversationId = String(payload?.conversationId ?? "");
