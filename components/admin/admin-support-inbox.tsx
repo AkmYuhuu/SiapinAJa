@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Conversation { id: string; userName: string; subject: string | null; status: string; type: string; updatedAt: string; }
 interface Message { id: string; senderType: "user" | "admin"; message: string; createdAt: string; }
@@ -28,7 +29,7 @@ export default function AdminSupportInbox() {
   const [sending, setSending] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createSupabaseClient>["channel"]>>();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => { void load(); }, []);
 
@@ -58,7 +59,7 @@ export default function AdminSupportInbox() {
 
     return () => {
       if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
-      channelRef.current = undefined;
+      channelRef.current = null;
       setUserTyping(false);
       void supabase.removeChannel(channel);
     };
