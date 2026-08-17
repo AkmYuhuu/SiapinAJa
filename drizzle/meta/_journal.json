@@ -36,6 +36,13 @@
       "when": 1786970000000,
       "tag": "0004_scope_freelancer_duplicate_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786960000000,
+      "tag": "0005_support_and_early_access",
+      "breakpoints": true
     }
   ]
 }
