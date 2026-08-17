@@ -178,3 +178,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+// Deployment sync marker: register visual redesign only.
