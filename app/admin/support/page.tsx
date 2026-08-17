@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import AdminSupportInbox from "@/components/admin/admin-support-inbox";
+import AdminSupportChatStyles from "@/components/admin/admin-support-chat-styles";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 
@@ -10,7 +11,8 @@ export default async function AdminSupportPage() {
   if (!admin.ok) redirect(admin.reason === "no-session" ? "/login?next=/admin/support" : "/dashboard");
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="admin-support-page mx-auto max-w-6xl space-y-6">
+      <AdminSupportChatStyles />
       <header>
         <div className="mb-4 flex items-center justify-between gap-3">
           <Link href="/admin">
