@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/fields";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast";
 import { LegalFooter } from "@/components/legal/legal-footer";
+import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 const DRAFT_KEY = "siapinaja:register-draft";
 
@@ -74,7 +75,7 @@ export default function RegisterPage() {
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-5xl items-center px-4">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-accent"><Icon name="tools" className="size-4 text-white" /></span>
+            <span className="flex size-8 shrink-0 overflow-hidden rounded-md bg-accent shadow-sm"><img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" /></span>
             <span className="text-base font-bold tracking-tight text-ink">Siapin<span className="text-accent-strong">Aja</span></span>
           </Link>
         </div>
