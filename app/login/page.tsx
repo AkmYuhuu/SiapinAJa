@@ -67,17 +67,17 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col bg-bg">
       <main className="mx-auto flex w-full max-w-6xl flex-1 p-4 sm:p-6 lg:p-8">
         <div className="grid min-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_20px_70px_rgba(43,40,35,0.09)] lg:grid-cols-[42%_58%] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)]">
-          <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(255,224,188,0.95),transparent_38%),linear-gradient(145deg,#ffb35a_0%,#ff7617_45%,#f04a08_100%)] px-8 py-10 text-white lg:flex lg:flex-col">
+          <section className="relative hidden overflow-hidden bg-[radial-gradient(circle_at_20%_10%,rgba(255,224,188,0.95),transparent_38%),linear-gradient(145deg,#ffb35a_0%,#ff7617_45%,#f04a08_100%)] px-8 py-10 text-white lg:flex lg:flex-col lg:items-center lg:text-center">
             <div className="absolute -right-24 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-24 -left-24 size-72 rounded-full bg-white/10 blur-2xl" />
 
-            <div className="relative z-10 flex items-center gap-3">
+            <div className="relative z-10 flex items-center justify-center gap-3">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-white/95 p-1.5 shadow-[0_12px_28px_rgba(104,39,0,0.22)]">
                 <BrandMark className="size-full rounded-[14px]" />
               </div>
             </div>
 
-            <div className="relative z-10 mt-7">
+            <div className="relative z-10 mt-7 flex max-w-md flex-col items-center">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/75">Early Access</p>
               <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">
                 Siapin<span className="text-white/95">Aja</span>
@@ -87,16 +87,16 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="relative z-10 mt-10 grid grid-cols-2 gap-3">
+            <div className="relative z-10 mt-10 grid w-full max-w-md grid-cols-2 gap-3 text-left">
               {[
                 ["calculator", "Hitung harga"],
-                ["document", "Buat dokumen"],
+                ["file", "Buat dokumen"],
                 ["camera", "Siapkan materi"],
                 ["download", "Ambil hasil"],
               ].map(([icon, label]) => (
                 <div key={label} className="rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
                   <div className="flex size-9 items-center justify-center rounded-lg bg-white/90 text-accent-strong">
-                    <Icon name={icon as "calculator" | "document" | "camera" | "download"} className="size-4.5" />
+                    <Icon name={icon as "calculator" | "file" | "camera" | "download"} className="size-4.5" />
                   </div>
                   <p className="mt-2 text-xs font-semibold text-white/90">{label}</p>
                 </div>
@@ -121,10 +121,10 @@ export default function LoginPage() {
             </header>
 
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-8">
-              <div>
+              <div className="text-center">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent-strong">Akses workspace</p>
                 <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Masuk ke akun Anda</h2>
-                <p className="mt-2 text-sm leading-relaxed text-ink-secondary">Lanjutkan pekerjaanmu dari mana pun terakhir berhenti.</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-secondary">Lanjutkan pekerjaanmu dari mana pun terakhir berhenti.</p>
               </div>
 
               <form onSubmit={submit} className="mt-8 space-y-4">
