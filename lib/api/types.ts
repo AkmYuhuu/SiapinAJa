@@ -8,8 +8,14 @@ export interface Entitlement {
   packs: string[];
   status: "active" | "expired";
   expiresAt: string;
+  earlyAccessExpiresAt: string | null;
   packages: Array<{ slug: string; status: string; expiresAt: string }>;
   tools: string[];
+}
+
+export interface AuthBootstrap {
+  session: Session | null;
+  entitlement: Entitlement | null;
 }
 
 export class ApiError extends Error {
