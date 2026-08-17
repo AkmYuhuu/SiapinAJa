@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@/components/icons";
+import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 export function EntryLoading() {
   const [visible, setVisible] = useState(false);
@@ -29,15 +29,15 @@ export function EntryLoading() {
       aria-label="Menyiapkan SiapinAja"
     >
       <div className="flex flex-col items-center text-center">
-        <div className="flex items-center gap-3 animate-[workspace-logo_360ms_ease-out_both]">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-accent shadow-sm">
-            <Icon name="tools" className="size-5 text-white" />
+        <div className="flex flex-col items-center animate-[workspace-logo_360ms_ease-out_both]">
+          <span className="flex size-16 overflow-hidden rounded-[18px] bg-accent shadow-[0_12px_30px_rgba(255,95,0,0.22)] ring-1 ring-black/5">
+            <img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" />
           </span>
-          <span className="flex flex-col items-start leading-tight">
-            <span className="text-lg font-bold tracking-tight text-ink">
-              Siapin<span className="text-accent-strong">Aja</span>
-            </span>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Early Access</span>
+          <span className="mt-4 text-xl font-bold tracking-tight text-ink">
+            Siapin<span className="text-accent-strong">Aja</span>
+          </span>
+          <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Early Access
           </span>
         </div>
 
