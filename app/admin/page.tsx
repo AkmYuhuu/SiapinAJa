@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import AdminRedemptionCodes from "@/components/admin/admin-redemption-codes";
+import AdminSupportBadge from "@/components/admin/admin-support-badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/icons";
 
@@ -19,12 +20,7 @@ export default async function AdminPage() {
               Kembali ke Beranda
             </Button>
           </Link>
-          <Link href="/admin/support">
-            <Button variant="secondary" size="sm">
-              <Icon name="help" className="size-3.5" />
-              Inbox Bantuan
-            </Button>
-          </Link>
+          <AdminSupportBadge />
         </div>
         <p className="text-xs font-semibold uppercase tracking-wider text-accent-strong">Admin</p>
         <h1 className="mt-1 text-2xl font-bold text-ink">Aktivasi manual & operasional</h1>
