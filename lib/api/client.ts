@@ -45,7 +45,7 @@ export const api = {
   async getEntitlement(): Promise<Entitlement | null> {
     return http<Entitlement | null>("/api/account/entitlement", { cache: "no-store" });
   },
-  async login(email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }): Promise<Session> {
+  async login(email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean; captchaToken?: string }): Promise<Session> {
     return http<Session>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password, ...consent }),
