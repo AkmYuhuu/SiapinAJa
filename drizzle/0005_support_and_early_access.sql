@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.support_messages (
   message text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT support_messages_sender_type_check CHECK (sender_type IN ('user','admin')),
-  CONSTRAINT support_messages_message_check CHECK (length(trim(message)) > 0 AND length(message) <= 5000)
+  CONSTRAINT support_messages_message_nonempty_check CHECK (length(trim(message)) > 0 AND length(message) <= 5000)
 );
 
 CREATE INDEX IF NOT EXISTS support_messages_conversation_id_idx ON public.support_messages(conversation_id, created_at);
