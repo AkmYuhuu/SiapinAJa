@@ -20,6 +20,7 @@ export function ToolCard({ tool, compact = false }: { tool: ToolDef; compact?: b
   return (
     <Link
       href={tool.route}
+      prefetch={false}
       className={`group flex items-start gap-3 rounded-lg border border-border bg-surface transition-colors hover:border-accent/50 hover:bg-accent-soft/40 ${
         compact ? "p-3" : "p-4"
       }`}
