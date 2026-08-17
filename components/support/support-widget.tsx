@@ -1,18 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Icon } from "@/components/icons";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 interface Conversation { id: string; type: "support" | "early_access"; subject: string | null; status: string; updatedAt: string; }
 interface Message { id: string; senderType: "user" | "admin"; message: string; createdAt: string; }
-
-const packages = [
-  { slug: "umkm", name: "UMKM" },
-  { slug: "freelancer", name: "Freelancer" },
-  { slug: "creator", name: "Creator / Seller" },
-];
 
 function mergeMessage(current: Message[], incoming: Message) {
   if (current.some((item) => item.id === incoming.id)) return current;
@@ -38,7 +33,7 @@ export function SupportWidget() {
   const [form, setForm] = useState({ requestedPackageSlug: "umkm", fullName: session?.name ?? "", businessName: "", businessType: "", productsServices: "", businessAge: "", salesChannels: "" });
   const [loading, setLoading] = useState(false);
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createSupabaseClient>["channel"]>>();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const publishTyping = (isTyping: boolean) => {
     if (!channelRef.current || !conversationId) return;
@@ -85,7 +80,7 @@ export function SupportWidget() {
 
     return () => {
       if (typingStopTimer.current) clearTimeout(typingStopTimer.current);
-      channelRef.current = undefined;
+      channelRef.current = null;
       setAdminTyping(false);
       void supabase.removeChannel(channel);
     };
