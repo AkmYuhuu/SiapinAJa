@@ -45,7 +45,7 @@ public/
   brand/            Asset brand SiapinAja
   asset 1.png       Asset visual landing
 
-driz​zle/
+drizzle/
   *.sql              Migration SQL
   meta/              Snapshot dan journal Drizzle
 ```
