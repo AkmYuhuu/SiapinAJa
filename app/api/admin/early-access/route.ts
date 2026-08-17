@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   }
 
   const packageRows = await db
-    .select({ id: packages.id, slug: packages.slug, durationDays: packages.durationDays, status: packages.status })
+    .select({ id: packages.id, slug: packages.slug, name: packages.name, durationDays: packages.durationDays, status: packages.status })
     .from(packages)
     .where(and(eq(packages.slug, application.requestedPackageSlug), eq(packages.status, "active")))
     .limit(1);
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     }
 
     await tx.update(earlyAccessApplications).set({ status: "approved", adminNote, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
-    await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: `Pengajuan Early Access kamu disetujui. Paket ${pkg.name ?? pkg.slug} aktif gratis selama 30 hari. Selamat mencoba dan jangan ragu mengirim feedback lewat Bantuan SiapinAja.`, createdAt: now });
+    await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: `Pengajuan Early Access kamu disetujui. Paket ${pkg.name} aktif gratis selama 30 hari. Selamat mencoba dan jangan ragu mengirim feedback lewat Bantuan SiapinAja.`, createdAt: now });
     await tx.update(supportConversations).set({ status: "resolved", updatedAt: now, adminReadAt: now, userReadAt: null }).where(eq(supportConversations.id, application.conversationId));
   });
 
