@@ -35,10 +35,14 @@ export function SupportWidget() {
   const [form, setForm] = useState({ requestedPackageSlug: "umkm", fullName: session?.name ?? "", businessName: "", businessType: "", productsServices: "", businessAge: "", salesChannels: "" });
 
   const globalChannelRef = useRef<RealtimeChannel | null>(null);
+  const adminNotifyRef = useRef<RealtimeChannel | null>(null);
   const conversationChannelRef = useRef<RealtimeChannel | null>(null);
+  const conversationIdRef = useRef("");
   const typingStopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  conversationIdRef.current = conversationId;
 
   const currentConversation = useMemo(() => conversations.find((item) => item.id === conversationId), [conversations, conversationId]);
 
@@ -48,14 +52,16 @@ export function SupportWidget() {
     void loadEarlyAccess();
 
     const supabase = createSupabaseClient();
-    const channel = supabase.channel(`support-user:${session.userId}`);
-    globalChannelRef.current = channel;
+    const userChannel = supabase.channel(`support-user:${session.userId}`);
+    const adminNotifyChannel = supabase.channel("support-admin-notify");
+    globalChannelRef.current = userChannel;
+    adminNotifyRef.current = adminNotifyChannel;
 
-    channel.on("broadcast", { event: "message" }, ({ payload }) => {
+    userChannel.on("broadcast", { event: "message" }, ({ payload }) => {
       const incoming = payload?.message as Message | undefined;
       const incomingConversationId = String(payload?.conversationId ?? "");
       if (!incoming || !incomingConversationId || incoming.senderType !== "admin") return;
-      if (incomingConversationId === conversationId) {
+      if (incomingConversationId === conversationIdRef.current) {
         setMessages((current) => mergeMessage(current, incoming));
         setAdminTyping(false);
       } else {
@@ -64,9 +70,15 @@ export function SupportWidget() {
       void loadConversations();
     });
 
+    userChannel.subscribe();
+    adminNotifyChannel.subscribe();
+
     return () => {
+      if (typingHideTimer.current) clearTimeout(typingHideTimer.current);
       globalChannelRef.current = null;
-      void supabase.removeChannel(channel);
+      adminNotifyRef.current = null;
+      void supabase.removeChannel(userChannel);
+      void supabase.removeChannel(adminNotifyChannel);
     };
   }, [session]);
 
@@ -76,7 +88,12 @@ export function SupportWidget() {
     const channel = supabase.channel(`support-conversation:${conversationId}`);
     conversationChannelRef.current = channel;
 
-    channel.on("broadcast", { event: "typing" }, ({ payload }) => {
+    channel.on("broadcast", { event: "message" }, ({ payload }) => {
+      const incoming = payload?.message as Message | undefined;
+      if (!incoming || incoming.senderType !== "admin") return;
+      setMessages((current) => mergeMessage(current, incoming));
+      setAdminTyping(false);
+    }).on("broadcast", { event: "typing" }, ({ payload }) => {
       if (payload?.senderType !== "admin") return;
       if (typingHideTimer.current) clearTimeout(typingHideTimer.current);
       const typing = Boolean(payload?.isTyping);
@@ -123,8 +140,7 @@ export function SupportWidget() {
 
   function publishTyping(isTyping: boolean) {
     if (!conversationId) return;
-    const payload = { senderType: "user", conversationId, isTyping };
-    void conversationChannelRef.current?.send({ type: "broadcast", event: "typing", payload });
+    void conversationChannelRef.current?.send({ type: "broadcast", event: "typing", payload: { senderType: "user", conversationId, isTyping } });
   }
 
   function handleComposerChange(value: string) {
@@ -163,7 +179,7 @@ export function SupportWidget() {
     if (sent) setMessages((current) => mergeMessage(current, sent));
     await loadConversations();
     if (sent) {
-      void createSupabaseClient().channel("support-admin-notify").send({ type: "broadcast", event: "message", payload: { conversationId: id, message: sent } });
+      void adminNotifyRef.current?.send({ type: "broadcast", event: "message", payload: { conversationId: id, message: sent } });
     }
   }
 
