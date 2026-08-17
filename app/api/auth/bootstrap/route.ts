@@ -19,6 +19,14 @@ export async function GET() {
     email: user.email || "",
   };
 
-  const entitlement = await resolveEntitlement(user.id);
-  return NextResponse.json({ session, entitlement });
+  try {
+    const entitlement = await resolveEntitlement(user.id);
+    return NextResponse.json({ session, entitlement });
+  } catch (err) {
+    console.error("Auth bootstrap entitlement error:", err);
+    return NextResponse.json(
+      { error: { code: "INTERNAL_ERROR", message: "Status akses tidak dapat dimuat." } },
+      { status: 500 },
+    );
+  }
 }
