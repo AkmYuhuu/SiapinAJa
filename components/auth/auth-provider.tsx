@@ -10,7 +10,7 @@ interface AuthContextValue {
   entitlement: Entitlement | null;
   loading: boolean;
   refresh: () => Promise<void>;
-  login: (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }) => Promise<Session>;
+  login: (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean; captchaToken?: string }) => Promise<Session>;
   logout: () => Promise<void>;
 }
 
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; window.removeEventListener("online", onOnline); };
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }) => {
+  const login = useCallback(async (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean; captchaToken?: string }) => {
     const loggedInSession = await api.login(email, password, consent);
     await refresh();
     return loggedInSession;
