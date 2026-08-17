@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 export default function AdminSupportBadge() {
   const [count, setCount] = useState(0);
@@ -10,13 +11,29 @@ export default function AdminSupportBadge() {
   async function load() {
     const response = await fetch("/api/admin/support", { cache: "no-store" });
     const data = await response.json().catch(() => null);
-    if (response.ok) setCount((data.conversations ?? []).filter((item: { adminReadAt: string | null }) => !item.adminReadAt).length);
+    if (!response.ok) return;
+    setCount((data.conversations ?? []).filter((item: { adminReadAt: string | null; updatedAt: string }) => {
+      if (!item.adminReadAt) return true;
+      return new Date(item.updatedAt).getTime() > new Date(item.adminReadAt).getTime();
+    }).length);
   }
 
   useEffect(() => {
     void load();
+    const supabase = createSupabaseClient();
+    const channel = supabase.channel("support-admin-badge");
+    channel
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, (payload) => {
+        const row = payload.new as { sender_type: string };
+        if (row.sender_type === "user") void load();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "support_conversations" }, () => void load())
+      .subscribe();
     const timer = window.setInterval(() => void load(), 15000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
