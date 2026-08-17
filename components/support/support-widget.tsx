@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { useAuth } from "@/components/auth/auth-provider";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 interface Conversation {
   id: string;
@@ -24,6 +25,11 @@ const packages = [
   { slug: "freelancer", name: "Freelancer" },
   { slug: "creator", name: "Creator / Seller" },
 ];
+
+function mergeMessage(current: Message[], incoming: Message) {
+  if (current.some((item) => item.id === incoming.id)) return current;
+  return [...current, incoming].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+}
 
 export function SupportWidget() {
   const { session } = useAuth();
@@ -54,12 +60,50 @@ export function SupportWidget() {
   }, [session]);
 
   useEffect(() => {
-    if (!session || !open || view !== "chat" || !conversationId) return;
-    const timer = window.setInterval(() => {
-      void loadConversation(conversationId, true);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [session, open, view, conversationId]);
+    if (!session) return;
+    const supabase = createSupabaseClient();
+    const channel = supabase
+      .channel(`support-user:${session.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "support_messages" },
+        (payload) => {
+          const row = payload.new as { id: string; conversation_id: string; sender_type: Message["senderType"]; message: string; created_at: string };
+          if (row.sender_type === "admin" && row.conversation_id === conversationId) {
+            setMessages((current) => mergeMessage(current, { id: row.id, senderType: row.sender_type, message: row.message, createdAt: row.created_at }));
+          }
+          void loadConversations();
+          if (view === "chat" && row.conversation_id === conversationId) {
+            void loadConversation(row.conversation_id, true);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "support_conversations" },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; updated_at: string };
+          setConversations((current) => current.map((item) => item.id === row.id ? { ...item, status: row.status, updatedAt: row.updated_at } : item));
+          if (row.id === conversationId) {
+            void loadConversation(row.id, true);
+          }
+          void loadEarlyAccess();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "early_access_applications" },
+        () => {
+          void loadEarlyAccess();
+          void loadConversations();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [session, conversationId, view]);
 
   const currentConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === conversationId),
@@ -144,7 +188,7 @@ export function SupportWidget() {
                     ["productsServices", "Menjual produk/jasa apa", "Jelaskan singkat"],
                     ["businessAge", "Sudah berjalan berapa lama", "Contoh: 2 tahun"],
                     ["salesChannels", "Biasanya jualan lewat apa", "Contoh: WhatsApp, Instagram, marketplace"],
-                  ].map(([key, label, placeholder]) => <label key={key} className="block text-xs font-semibold text-ink">{label}<input value={form[key as keyof typeof form]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} placeholder={placeholder} className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm font-normal text-ink placeholder:text-ink-faint" /></label>)}
+                  ].map(([key, label, placeholder]) => <label key={key} className="block text-xs font-semibold text-ink">{label}<input required value={form[key as keyof typeof form]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} placeholder={placeholder} className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm font-normal text-ink placeholder:text-ink-faint" /></label>)}
                   <label className="flex items-start gap-2 rounded-md border border-border p-3 text-xs leading-relaxed text-ink-secondary"><input required type="checkbox" className="mt-0.5" />Saya memahami program Early Access dan bersedia memberikan feedback penggunaan SiapinAja.</label>
                   <button type="submit" disabled={loading} className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-strong disabled:opacity-50">{loading ? "Mengirim…" : "Ajukan Early Access"}</button>
                   {earlyStatus && earlyStatus !== "pending" && <p className="text-xs text-danger">{earlyStatus}</p>}
