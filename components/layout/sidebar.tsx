@@ -6,12 +6,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
+import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 function Wordmark({ className = "" }: { className?: string }) {
   return (
     <Link href="/dashboard" className={`flex items-center gap-2 ${className}`}>
-      <span className="flex size-7 items-center justify-center rounded-md bg-accent">
-        <Icon name="tools" className="size-4 text-white" />
+      <span className="flex size-7 shrink-0 overflow-hidden rounded-md bg-accent shadow-sm">
+        <img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" />
       </span>
       <span className="flex flex-col leading-tight">
         <span className="text-[15px] font-bold tracking-tight text-ink">
