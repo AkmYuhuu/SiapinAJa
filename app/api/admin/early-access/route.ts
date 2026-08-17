@@ -83,9 +83,10 @@ export async function POST(req: Request) {
   }
 
   if (action === "reject") {
-    const text = adminNote ? `Pengajuan Early Access belum dapat disetujui.\n\nCatatan: ${adminNote}` : "Pengajuan Early Access belum dapat disetujui saat ini.";
+    const reason = adminNote || "Pengajuan belum dapat disetujui karena informasi yang diberikan belum cukup untuk memenuhi kriteria Early Access atau belum memungkinkan kami memverifikasi kebutuhan usaha dengan memadai.";
+    const text = `Pengajuan Early Access belum dapat disetujui.\n\nAlasan: ${reason}`;
     await db.transaction(async (tx) => {
-      await tx.update(earlyAccessApplications).set({ status: "rejected", adminNote, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
+      await tx.update(earlyAccessApplications).set({ status: "rejected", adminNote: reason, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
       await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: text, createdAt: now });
       await tx.update(supportConversations).set({ status: "resolved", updatedAt: now, adminReadAt: now, userReadAt: null }).where(eq(supportConversations.id, application.conversationId));
     });
