@@ -10,9 +10,12 @@ export function EntryLoading() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reducedMotion) return;
 
-    setVisible(true);
-    const timer = window.setTimeout(() => setVisible(false), 900);
-    return () => window.clearTimeout(timer);
+    const showTimer = window.setTimeout(() => setVisible(true), 120);
+    const hideTimer = window.setTimeout(() => setVisible(false), 450);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
   }, []);
 
   if (!visible) return null;
@@ -25,8 +28,8 @@ export function EntryLoading() {
       aria-label="Menyiapkan SiapinAja"
     >
       <div className="flex flex-col items-center text-center">
-        <div className="flex flex-col items-center animate-[workspace-logo_360ms_ease-out_both]">
-          <BrandMark className="size-16 shrink-0 rounded-[18px] shadow-[0_12px_30px_rgba(255,95,0,0.22)] ring-1 ring-black/5" />
+        <div className="flex flex-col items-center animate-[workspace-logo_300ms_ease-out_both]">
+          <BrandMark className="size-16 shrink-0 rounded-[18px] shadow-[0_12px_30px_rgba(255,95,0,0.18)] ring-1 ring-black/5" />
           <span className="mt-4 text-xl font-bold tracking-tight text-ink">
             Siapin<span className="text-accent-strong">Aja</span>
           </span>
@@ -35,7 +38,7 @@ export function EntryLoading() {
           </span>
         </div>
 
-        <p className="mt-5 text-sm font-medium text-ink animate-[workspace-copy_380ms_80ms_ease-out_both]">
+        <p className="mt-5 text-sm font-medium text-ink animate-[workspace-copy_320ms_60ms_ease-out_both]">
           Menyiapkan ruang kerjamu...
         </p>
 
@@ -43,8 +46,8 @@ export function EntryLoading() {
           {[0, 1, 2].map((item) => (
             <span
               key={item}
-              className="size-1.5 rounded-full bg-accent animate-[workspace-dot_700ms_ease-in-out_infinite]"
-              style={{ animationDelay: `${item * 120}ms` }}
+              className="size-1.5 rounded-full bg-accent animate-[workspace-dot_650ms_ease-in-out_infinite]"
+              style={{ animationDelay: `${item * 100}ms` }}
             />
           ))}
         </div>
