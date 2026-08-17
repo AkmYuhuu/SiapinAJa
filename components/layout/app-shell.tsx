@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SidebarContent } from "./sidebar";
+import { SupportWidget } from "@/components/support/support-widget";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
 import { getTool, getToolByRoute, getCategory, CATEGORIES, searchTools } from "@/lib/registry";
@@ -95,11 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="app-shell-content lg:pl-60">
         <header className="app-topbar print-hide sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-bg/90 px-4 backdrop-blur lg:px-6">
-          <button
-            className="flex size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted lg:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Buka menu"
-          >
+          <button className="flex size-8 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Buka menu">
             <svg className="size-5" viewBox="0 0 20 20" fill="none" aria-hidden>
               <path d="M3 5.5h14M3 10h14M3 14.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
@@ -107,95 +104,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h1 className="text-[15px] font-semibold text-ink">{title}</h1>
           <form ref={formRef} onSubmit={goDashboard} className="relative ml-auto hidden md:block">
             <Icon name="search" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-faint" />
-            <input
-              name="q"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setOpen(true);
-              }}
-              onFocus={() => setOpen(true)}
-              onBlur={closeSoon}
-              placeholder="Cari tools atau proyek…"
-              aria-label="Cari tools atau proyek"
-              autoComplete="off"
-              className="h-8 w-56 rounded-md border border-border bg-surface pl-8 pr-8 text-[13px] placeholder:text-ink-faint focus:border-accent focus:outline-none"
-            />
-            {q && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setQ("");
-                  setOpen(false);
-                }}
-                className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-ink-faint hover:text-ink"
-                aria-label="Bersihkan pencarian"
-              >
-                <svg className="size-3" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
+            <input name="q" value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={closeSoon} placeholder="Cari tools atau proyek…" aria-label="Cari tools atau proyek" autoComplete="off" className="h-8 w-56 rounded-md border border-border bg-surface pl-8 pr-8 text-[13px] placeholder:text-ink-faint focus:border-accent focus:outline-none" />
+            {q && <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setOpen(false); }} className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-ink-faint hover:text-ink" aria-label="Bersihkan pencarian"><span aria-hidden>×</span></button>}
             {open && q.trim() && results && (results.toolHits.length > 0 || results.projectHits.length > 0) && (
               <div className="absolute left-0 top-full z-30 mt-1.5 w-96 max-h-[26rem] overflow-y-auto rounded-lg border border-border bg-surface p-1.5 shadow-[0_12px_32px_rgba(43,40,35,0.18)]">
-                {results.toolHits.length > 0 && (
-                  <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                    Tools ({results.toolHits.length})
-                  </p>
-                )}
-                {results.toolHits.map((t) => (
-                  <Link
-                    key={t.toolId}
-                    href={t.route}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setQ("");
-                      setOpen(false);
-                    }}
-                    className="flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] hover:bg-surface-muted"
-                  >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded bg-accent-soft text-accent-strong">
-                      <Icon name={t.icon} className="size-3" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-ink">{t.name}</span>
-                      <span className="block truncate text-[11px] text-ink-faint">{getCategory(t.category)?.name}</span>
-                    </span>
-                    <Icon name="chevron" className="ml-auto size-3 shrink-0 text-ink-faint" />
-                  </Link>
-                ))}
-                {results.projectHits.length > 0 && (
-                  <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                    Proyek ({results.projectHits.length})
-                  </p>
-                )}
-                {results.projectHits.map((p) => {
-                  const tool = getTool(p.toolId);
-                  return (
-                    <Link
-                      key={p.id}
-                      href={tool?.route ?? "/projects"}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setQ("");
-                        setOpen(false);
-                      }}
-                      className="flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] hover:bg-surface-muted"
-                    >
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded bg-surface-muted text-ink-secondary">
-                        <Icon name="folder" className="size-3" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-ink">{p.name}</span>
-                        <span className="block truncate text-[11px] text-ink-faint">{tool?.name ?? p.toolId}</span>
-                      </span>
-                    </Link>
-                  );
-                })}
-                <div className="mt-1 border-t border-border px-2.5 py-1.5 text-[11px] text-ink-faint">
-                  Tekan <strong>Enter</strong> untuk melihat semua hasil →
-                </div>
+                {results.toolHits.length > 0 && <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Tools ({results.toolHits.length})</p>}
+                {results.toolHits.map((t) => <Link key={t.toolId} href={t.route} onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setOpen(false); }} className="flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] hover:bg-surface-muted"><span className="flex size-6 shrink-0 items-center justify-center rounded bg-accent-soft text-accent-strong"><Icon name={t.icon} className="size-3" /></span><span className="min-w-0"><span className="block truncate font-medium text-ink">{t.name}</span><span className="block truncate text-[11px] text-ink-faint">{getCategory(t.category)?.name}</span></span><Icon name="chevron" className="ml-auto size-3 shrink-0 text-ink-faint" /></Link>)}
+                {results.projectHits.length > 0 && <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Proyek ({results.projectHits.length})</p>}
+                {results.projectHits.map((p) => { const tool = getTool(p.toolId); return <Link key={p.id} href={tool?.route ?? "/projects"} onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setOpen(false); }} className="flex items-center gap-2.5 rounded px-2.5 py-1.5 text-[13px] hover:bg-surface-muted"><span className="flex size-6 shrink-0 items-center justify-center rounded bg-surface-muted text-ink-secondary"><Icon name="folder" className="size-3" /></span><span className="min-w-0"><span className="block truncate font-medium text-ink">{p.name}</span><span className="block truncate text-[11px] text-ink-faint">{tool?.name ?? p.toolId}</span></span></Link>; })}
+                <div className="mt-1 border-t border-border px-2.5 py-1.5 text-[11px] text-ink-faint">Tekan <strong>Enter</strong> untuk melihat semua hasil →</div>
               </div>
             )}
           </form>
@@ -207,17 +124,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main className="app-main mx-auto w-full max-w-6xl px-4 py-6 lg:px-8">
-          {!isDashboard && (
-            <div className="mb-5">
-              <button type="button" onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-ink-secondary hover:bg-surface-muted hover:text-ink">
-                <Icon name="chevron" className="size-3.5 rotate-180" />
-                Kembali ke Beranda
-              </button>
-            </div>
-          )}
+          {!isDashboard && <div className="mb-5"><button type="button" onClick={() => router.push("/dashboard")} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-ink-secondary hover:bg-surface-muted hover:text-ink"><Icon name="chevron" className="size-3.5 rotate-180" />Kembali ke Beranda</button></div>}
           {children}
         </main>
       </div>
+      <SupportWidget />
     </div>
   );
 }
