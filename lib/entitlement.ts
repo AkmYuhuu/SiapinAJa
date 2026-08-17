@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, gt, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { db } from "./db/index";
 import { packages, packageTools, subscriptions, tools } from "./db/schema";
 
@@ -15,6 +15,7 @@ export interface ResolvedEntitlement {
   packs: string[];
   status: "active" | "expired";
   expiresAt: string;
+  earlyAccessExpiresAt: string | null;
   packages: Array<{ slug: string; status: string; expiresAt: string }>;
   tools: string[];
 }
@@ -27,6 +28,7 @@ export async function resolveEntitlement(userId: string): Promise<ResolvedEntitl
       packageSlug: packages.slug,
       expiresAt: subscriptions.expiresAt,
       status: subscriptions.status,
+      provider: subscriptions.provider,
       toolSlug: tools.slug,
     })
     .from(subscriptions)
@@ -45,12 +47,28 @@ export async function resolveEntitlement(userId: string): Promise<ResolvedEntitl
 
   const packageMap = new Map<string, { slug: string; status: string; expiresAt: Date }>();
   const toolSet = new Set<string>();
+  let activeEarlyAccessExpiresAt: Date | null = null;
+
   for (const row of rows) {
     toolSet.add(row.toolSlug);
     const existing = packageMap.get(row.packageSlug);
     if (!existing || row.expiresAt.getTime() > existing.expiresAt.getTime()) {
       packageMap.set(row.packageSlug, { slug: row.packageSlug, status: row.status, expiresAt: row.expiresAt });
     }
+    if (row.provider === "early_access" && (!activeEarlyAccessExpiresAt || row.expiresAt > activeEarlyAccessExpiresAt)) {
+      activeEarlyAccessExpiresAt = row.expiresAt;
+    }
+  }
+
+  let earlyAccessExpiresAt = activeEarlyAccessExpiresAt;
+  if (!earlyAccessExpiresAt) {
+    const historical = await db
+      .select({ expiresAt: subscriptions.expiresAt })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.provider, "early_access")))
+      .orderBy(desc(subscriptions.expiresAt))
+      .limit(1);
+    earlyAccessExpiresAt = historical[0]?.expiresAt ?? null;
   }
 
   const expiresAt =
@@ -62,6 +80,7 @@ export async function resolveEntitlement(userId: string): Promise<ResolvedEntitl
     packs: [...packageMap.values()].map((p) => p.slug),
     status: rows.length > 0 ? "active" : "expired",
     expiresAt,
+    earlyAccessExpiresAt: earlyAccessExpiresAt?.toISOString() ?? null,
     packages: [...packageMap.values()].map((p) => ({
       slug: p.slug,
       status: "active",
