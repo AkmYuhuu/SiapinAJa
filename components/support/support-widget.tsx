@@ -98,8 +98,8 @@ export function SupportWidget() {
     globalChannelRef.current = userChannel;
 
     userChannel
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ payload }) => {
-        const row = payload.new as { id: string; conversation_id: string; sender_type: string; message: string; created_at: string };
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ new: row }) => {
+        const typedRow = row as { id: string; conversation_id: string; sender_type: string; message: string; created_at: string };
         if (row.sender_type !== "admin") return;
         const target = conversationsRef.current.find((item) => item.id === row.conversation_id);
         const targetType = target?.type ?? (row.conversation_id === earlyConversationIdRef.current ? "early_access" : "support");
