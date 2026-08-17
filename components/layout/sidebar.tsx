@@ -6,23 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
 import type { IconName } from "@/components/icons";
-import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
-
-function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <Link href="/dashboard" className={`flex items-center gap-2 ${className}`}>
-      <span className="flex size-7 shrink-0 overflow-hidden rounded-md bg-accent shadow-sm">
-        <img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" />
-      </span>
-      <span className="flex flex-col leading-tight">
-        <span className="text-[15px] font-bold tracking-tight text-ink">
-          Siapin<span className="text-accent-strong">Aja</span>
-        </span>
-        <span className="text-[8px] font-semibold uppercase tracking-[0.11em] text-ink-faint">Early Access</span>
-      </span>
-    </Link>
-  );
-}
+import { BrandWordmark } from "@/components/brand/logo";
 
 interface NavItem {
   href: string;
@@ -55,13 +39,13 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
               active
-                ? "bg-accent-soft font-semibold text-accent-ink"
-                : "text-ink-secondary hover:bg-surface-muted hover:text-ink"
+                ? "bg-[#fff0e5] font-semibold text-[#c45c0d] shadow-[inset_0_0_0_1px_rgba(232,98,12,0.06)]"
+                : "text-ink-secondary hover:bg-[#f8f6f1] hover:text-ink"
             }`}
           >
-            <Icon name={item.icon} className="size-4" />
+            <Icon name={item.icon} className={`size-[17px] shrink-0 ${active ? "text-[#e8620c]" : "text-ink-faint group-hover:text-ink-secondary"}`} />
             {item.label}
           </Link>
         );
@@ -77,7 +61,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
-
     if (!session) {
       setIsAdmin(false);
       return;
@@ -98,75 +81,73 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   }, [session?.userId]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center border-b border-border px-4">
-        <Wordmark />
+    <div className="flex h-full flex-col bg-white">
+      <div className="flex h-[74px] items-center border-b border-[#eeeae2] px-4">
+        <BrandWordmark />
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto scroll-thin px-2.5 py-3">
+
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3.5 scroll-thin">
         <NavLinks items={MAIN} onNavigate={onNavigate} />
 
-        <p className="px-2.5 pb-1 pt-4 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-          Tools
-        </p>
+        <p className="px-3 pb-1.5 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Tools</p>
+
         <Link
           href="/tools"
           onClick={onNavigate}
-          className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+          className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
             pathname === "/tools"
-              ? "bg-accent-soft font-semibold text-accent-ink"
-              : "text-ink-secondary hover:bg-surface-muted hover:text-ink"
+              ? "bg-[#fff0e5] font-semibold text-[#c45c0d]"
+              : "text-ink-secondary hover:bg-[#f8f6f1] hover:text-ink"
           }`}
         >
-          <Icon name="tools" className="size-4" />
+          <Icon name="tools" className={`size-[17px] shrink-0 ${pathname === "/tools" ? "text-[#e8620c]" : "text-ink-faint"}`} />
           Semua tools
         </Link>
+
         <CategoryNav onNavigate={onNavigate} />
 
-        <div className="my-3 border-t border-border" />
+        <div className="my-4 border-t border-[#eeeae2]" />
         <NavLinks items={BOTTOM} onNavigate={onNavigate} />
 
         {isAdmin && (
           <Link
             href="/admin"
             onClick={onNavigate}
-            className={`mt-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+            className={`mt-1 group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
               pathname === "/admin" || pathname.startsWith("/admin/")
-                ? "bg-accent-soft font-semibold text-accent-ink"
-                : "text-ink-secondary hover:bg-surface-muted hover:text-ink"
+                ? "bg-[#fff0e5] font-semibold text-[#c45c0d]"
+                : "text-ink-secondary hover:bg-[#f8f6f1] hover:text-ink"
             }`}
           >
-            <Icon name="tag" className="size-4" />
+            <Icon name="tag" className={`size-[17px] shrink-0 ${pathname.startsWith("/admin") ? "text-[#e8620c]" : "text-ink-faint"}`} />
             Admin
           </Link>
         )}
       </nav>
-      <div className="border-t border-border p-2.5">
+
+      <div className="border-t border-[#eeeae2] p-3">
         {session ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Link
               href="/account"
               onClick={onNavigate}
-              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-surface-muted"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-[#f8f6f1]"
             >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-surface text-xs font-bold text-accent-ink">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#fff0e5] text-sm font-bold text-[#c45c0d] ring-1 ring-[#f6dcc7]">
                 {session.name.slice(0, 1).toUpperCase()}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[13px] font-medium text-ink">{session.name}</span>
+                <span className="block truncate text-[13px] font-semibold text-ink">{session.name}</span>
                 <span className="block truncate text-[11px] text-ink-faint">{session.email}</span>
-                {isAdmin && <span className="block text-[10px] font-semibold text-accent-strong">Admin</span>}
+                {isAdmin && <span className="mt-0.5 block text-[10px] font-semibold text-accent-strong">Admin</span>}
               </span>
             </Link>
-            <button onClick={logout} title="Keluar" aria-label="Keluar" className="flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-surface-muted hover:text-danger">
+            <button onClick={logout} title="Keluar" aria-label="Keluar" className="flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-faint hover:bg-[#fff0e5] hover:text-danger">
               <Icon name="logout" className="size-4" />
             </button>
           </div>
         ) : (
-          <Link
-            href="/login"
-            onClick={onNavigate}
-            className="flex items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-[13px] font-medium text-ink hover:bg-surface-muted"
-          >
+          <Link href="/login" onClick={onNavigate} className="flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-[13px] font-semibold text-ink hover:bg-surface-muted">
             <Icon name="lock" className="size-4 text-ink-faint" />
             Masuk
           </Link>
@@ -183,6 +164,7 @@ function CategoryNav({ onNavigate }: { onNavigate?: () => void }) {
     { href: "/tools/freelancer", label: "Freelancer", icon: "briefcase" as IconName },
     { href: "/tools/creator-seller", label: "Creator / Seller", icon: "camera" as IconName },
   ];
+
   return (
     <div className="space-y-0.5">
       {cats.map((c) => {
@@ -192,13 +174,13 @@ function CategoryNav({ onNavigate }: { onNavigate?: () => void }) {
             key={c.href}
             href={c.href}
             onClick={onNavigate}
-            className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all ${
               active
-                ? "bg-accent-soft font-semibold text-accent-ink"
-                : "text-ink-secondary hover:bg-surface-muted hover:text-ink"
+                ? "bg-[#fff0e5] font-semibold text-[#c45c0d]"
+                : "text-ink-secondary hover:bg-[#f8f6f1] hover:text-ink"
             }`}
           >
-            <Icon name={c.icon} className="size-4" />
+            <Icon name={c.icon} className={`size-[17px] shrink-0 ${active ? "text-[#e8620c]" : "text-ink-faint"}`} />
             {c.label}
           </Link>
         );
