@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
+import { BrandMark } from "@/components/brand/logo";
 
 export function EntryLoading() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // This component is mounted once by the root layout. Because Next.js
-    // keeps the root layout mounted during client-side navigation, an empty
-    // dependency list makes the intro run only after a full document load:
-    // refresh, direct URL entry, or a new tab.
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reducedMotion) return;
 
@@ -30,9 +26,7 @@ export function EntryLoading() {
     >
       <div className="flex flex-col items-center text-center">
         <div className="flex flex-col items-center animate-[workspace-logo_360ms_ease-out_both]">
-          <span className="flex size-16 overflow-hidden rounded-[18px] bg-accent shadow-[0_12px_30px_rgba(255,95,0,0.22)] ring-1 ring-black/5">
-            <img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" />
-          </span>
+          <BrandMark className="size-16 shrink-0 rounded-[18px] shadow-[0_12px_30px_rgba(255,95,0,0.22)] ring-1 ring-black/5" />
           <span className="mt-4 text-xl font-bold tracking-tight text-ink">
             Siapin<span className="text-accent-strong">Aja</span>
           </span>
