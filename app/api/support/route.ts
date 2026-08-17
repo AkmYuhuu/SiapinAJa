@@ -83,7 +83,6 @@ export async function POST(req: Request) {
 
   const now = new Date();
   let conversationId = body?.conversationId?.trim() || "";
-  let createdMessage: { id: string; createdAt: Date } | null = null;
 
   if (conversationId) {
     const existing = await db
@@ -95,33 +94,44 @@ export async function POST(req: Request) {
     if (existing[0].status === "closed") return error(409, "CLOSED", "Percakapan ini sudah ditutup.");
   }
 
-  await db.transaction(async (tx) => {
-    if (!conversationId) {
+  const result = await db.transaction(async (tx) => {
+    let nextConversationId = conversationId;
+
+    if (!nextConversationId) {
       const created = await tx
         .insert(supportConversations)
         .values({ userId: user.id, type: "support", subject: body?.subject?.trim() || "Bantuan SiapinAja", status: "open", userReadAt: now })
         .returning({ id: supportConversations.id });
-      conversationId = created[0].id;
+      nextConversationId = created[0].id;
     }
 
-    const [inserted] = await tx.insert(supportMessages).values({
-      conversationId,
-      senderId: user.id,
-      senderType: "user",
-      message,
-      createdAt: now,
-    }).returning({ id: supportMessages.id, createdAt: supportMessages.createdAt });
-    createdMessage = inserted;
+    const [inserted] = await tx
+      .insert(supportMessages)
+      .values({
+        conversationId: nextConversationId,
+        senderId: user.id,
+        senderType: "user",
+        message,
+        createdAt: now,
+      })
+      .returning({ id: supportMessages.id, createdAt: supportMessages.createdAt });
 
     await tx
       .update(supportConversations)
       .set({ status: "open", updatedAt: now, userReadAt: now, adminReadAt: null })
-      .where(eq(supportConversations.id, conversationId));
+      .where(eq(supportConversations.id, nextConversationId));
+
+    return { conversationId: nextConversationId, messageId: inserted.id, createdAt: inserted.createdAt };
   });
 
   return NextResponse.json({
     ok: true,
-    conversationId,
-    message: createdMessage ? { id: createdMessage.id, senderType: "user", message, createdAt: createdMessage.createdAt.toISOString() } : null,
+    conversationId: result.conversationId,
+    message: {
+      id: result.messageId,
+      senderType: "user",
+      message,
+      createdAt: result.createdAt.toISOString(),
+    },
   });
 }
