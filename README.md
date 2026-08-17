@@ -50,6 +50,10 @@ drizzle/
   meta/              Snapshot dan journal Drizzle
 ```
 
+## Performance
+
+Tool routes memakai lazy loading dan mematikan eager route prefetch pada kartu tool supaya browser tidak mengunduh banyak chunk tool sebelum dipilih. Halaman tool juga memiliki loading boundary lokal agar navigasi segera memberikan feedback visual ketika pemeriksaan akses server dan chunk tool masih berjalan.
+
 ## Scripts
 
 ```bash
