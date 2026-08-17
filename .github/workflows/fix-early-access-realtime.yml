@@ -1,0 +1,78 @@
+name: Fix Early Access Realtime
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch admin and user realtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          admin = Path('components/admin/admin-support-inbox.tsx')
+          s = admin.read_text()
+
+          s = s.replace(
+              '  const [notice, setNotice] = useState("");\n',
+              '  const [notice, setNotice] = useState("");\n  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);\n'
+          )
+          s = s.replace(
+              '    setSelected(id);\n    setSelectedUserId(data.conversation.userId ?? "");\n',
+              '    setSelected(id);\n    setSelectedUserId(data.conversation.userId ?? "");\n    setSelectedConversation(data.conversation as Conversation);\n'
+          )
+          s = s.replace(
+              '      setSelected("");\n      setSelectedUserId("");\n      setMessages([]);\n',
+              '      setSelected("");\n      setSelectedUserId("");\n      setSelectedConversation(null);\n      setMessages([]);\n'
+          )
+          s = s.replace(
+              '    const response = await fetch("/api/admin/early-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicationId: application.id, action, adminNote: note }) });\n    const data = await response.json().catch(() => null);\n    setSending(false);\n    if (!response.ok) return;\n    await load();\n    await openConversation(application.conversationId, true);\n    if (data) setApplication((current) => current ? { ...current, status: action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info", adminNote: note } : current);\n',
+              '    const response = await fetch("/api/admin/early-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicationId: application.id, action, adminNote: note }) });\n    const data = await response.json().catch(() => null);\n    setSending(false);\n    if (!response.ok) return;\n    const nextStatus = action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info";\n    setApplication((current) => current ? { ...current, status: nextStatus, adminNote: note } : current);\n    setSelectedConversation((current) => current ? { ...current, status: "resolved", updatedAt: new Date().toISOString() } : current);\n    void userNotifyRef.current?.send({ type: "broadcast", event: "early_access", payload: { conversationId: application.conversationId, status: nextStatus, adminNote: note } });\n    const support = await fetch(`/api/admin/support?conversationId=${encodeURIComponent(application.conversationId)}`, { cache: "no-store" });\n    const supportData = await support.json().catch(() => null);\n    if (support.ok) {\n      setMessages(Array.isArray(supportData.messages) ? supportData.messages : []);\n      setSelectedConversation(supportData.conversation as Conversation);\n      setSelected(application.conversationId);\n      setSelectedUserId(supportData.conversation?.userId ?? selectedUserId);\n      setApplication(supportData.application ?? null);\n    }\n    await load();\n'
+          )
+          s = s.replace(
+              '<h2 className="text-base font-bold text-ink">{application ? application.businessName : "Percakapan"}</h2>',
+              '<h2 className="text-base font-bold text-ink">{application ? application.businessName : selectedConversation?.subject ?? "Percakapan"}</h2>'
+          )
+          s = s.replace(
+              '<p className="mt-1 text-xs text-ink-secondary">{application ? `${application.fullName} · ${application.requestedPackageSlug}` : "Support pengguna"}</p>',
+              '<p className="mt-1 text-xs text-ink-secondary">{application ? `${application.fullName} · ${application.requestedPackageSlug}` : selectedConversation?.userName ?? "Support pengguna"}</p>'
+          )
+
+          admin.write_text(s)
+
+          user = Path('components/support/support-widget.tsx')
+          u = user.read_text()
+          marker = '      .on("broadcast", { event: "message" }, ({ payload }) => {'
+          if 'event: "early_access"' not in u:
+              injection = '''      .on("broadcast", { event: "early_access" }, ({ payload }) => {\n        const status = String(payload?.status ?? "");\n        if (!status) return;\n        setEarlyStatus(status);\n        setEarlyReason(String(payload?.adminNote ?? ""));\n        showNotice(status === "approved" ? "Early Access disetujui" : status === "rejected" ? "Pengajuan Early Access ditolak" : "Ada pembaruan Early Access", String(payload?.conversationId ?? earlyConversationIdRef.current), "early_access");\n        void loadEarlyAccess();\n      })\n'''
+              u = u.replace(marker, injection + marker, 1)
+          user.write_text(u)
+
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add components/admin/admin-support-inbox.tsx components/support/support-widget.tsx
+          git diff --cached --quiet || git commit -m 'fix: realtime early access status and preserve active chat'
+          git push
+
+      - name: Remove temporary workflow
+        if: success()
+        run: |
+          rm -f .github/workflows/fix-early-access-realtime.yml
+          git add .github/workflows/fix-early-access-realtime.yml
+          git commit -m 'chore: remove temporary repair workflow' || true
+          git push || true
