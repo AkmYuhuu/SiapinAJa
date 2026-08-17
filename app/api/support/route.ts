@@ -50,7 +50,7 @@ export async function GET(req: Request) {
 
     await db
       .update(supportConversations)
-      .set({ userReadAt: new Date(), updatedAt: new Date() })
+      .set({ userReadAt: new Date() })
       .where(and(eq(supportConversations.id, conversationId), eq(supportConversations.userId, user.id)));
 
     return NextResponse.json({ conversation: conversations[0], messages });
@@ -83,6 +83,7 @@ export async function POST(req: Request) {
 
   const now = new Date();
   let conversationId = body?.conversationId?.trim() || "";
+  let createdMessage: { id: string; createdAt: Date } | null = null;
 
   if (conversationId) {
     const existing = await db
@@ -103,13 +104,14 @@ export async function POST(req: Request) {
       conversationId = created[0].id;
     }
 
-    await tx.insert(supportMessages).values({
+    const [inserted] = await tx.insert(supportMessages).values({
       conversationId,
       senderId: user.id,
       senderType: "user",
       message,
       createdAt: now,
-    });
+    }).returning({ id: supportMessages.id, createdAt: supportMessages.createdAt });
+    createdMessage = inserted;
 
     await tx
       .update(supportConversations)
@@ -117,5 +119,9 @@ export async function POST(req: Request) {
       .where(eq(supportConversations.id, conversationId));
   });
 
-  return NextResponse.json({ ok: true, conversationId });
+  return NextResponse.json({
+    ok: true,
+    conversationId,
+    message: createdMessage ? { id: createdMessage.id, senderType: "user", message, createdAt: createdMessage.createdAt.toISOString() } : null,
+  });
 }
