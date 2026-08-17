@@ -63,7 +63,7 @@ export function SupportWidget() {
     if (!session) return;
     const supabase = createSupabaseClient();
     const channel = supabase
-      .channel(`support-user:${session.id}`)
+      .channel(`support-user:${session.userId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "support_messages" },
