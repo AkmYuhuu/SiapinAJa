@@ -5,7 +5,16 @@ import { useEffect, useRef, useState } from "react";
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
 type TurnstileInstance = {
-  render: (element: HTMLElement, options: { sitekey: string; theme?: "light" | "dark" | "auto"; callback?: (token: string) => void; "expired-callback"?: () => void; "error-callback"?: () => void }) => string;
+  render: (
+    element: HTMLElement,
+    options: {
+      sitekey: string;
+      theme?: "light" | "dark" | "auto";
+      callback?: (token: string) => void;
+      "expired-callback"?: () => void;
+      "error-callback"?: () => void;
+    },
+  ) => string;
   reset: (widgetId?: string) => void;
 };
 
@@ -15,10 +24,11 @@ declare global {
   }
 }
 
-export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
+export function Turnstile({ name = "turnstileToken" }: { name?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const tokenRef = useRef<HTMLInputElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [ready, setReady] = useState(Boolean(window.turnstile));
+  const [ready, setReady] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
@@ -46,16 +56,22 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
       theme: "light",
-      callback: onToken,
-      "expired-callback": () => onToken(""),
-      "error-callback": () => onToken(""),
+      callback: (token) => {
+        if (tokenRef.current) tokenRef.current.value = token;
+      },
+      "expired-callback": () => {
+        if (tokenRef.current) tokenRef.current.value = "";
+      },
+      "error-callback": () => {
+        if (tokenRef.current) tokenRef.current.value = "";
+      },
     });
 
     return () => {
       if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
       widgetIdRef.current = null;
     };
-  }, [ready, siteKey, onToken]);
+  }, [ready, siteKey]);
 
   if (!siteKey) {
     return (
@@ -65,5 +81,10 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
     );
   }
 
-  return <div ref={containerRef} className="min-h-[65px]" aria-label="Verifikasi anti-bot" />;
+  return (
+    <div>
+      <div ref={containerRef} className="min-h-[65px]" aria-label="Verifikasi anti-bot" />
+      <input ref={tokenRef} type="hidden" name={name} defaultValue="" />
+    </div>
+  );
 }
