@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { earlyAccessApplications, packages, profiles, supportConversations, subscriptions } from "@/lib/db/schema";
+import { earlyAccessApplications, packages, profiles, supportConversations, supportMessages, subscriptions } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -73,16 +73,20 @@ export async function POST(req: Request) {
   const now = new Date();
 
   if (action === "needs_info") {
+    const text = adminNote ? `Admin membutuhkan informasi tambahan:\n\n${adminNote}` : "Admin membutuhkan informasi tambahan. Silakan balas di chat ini.";
     await db.transaction(async (tx) => {
       await tx.update(earlyAccessApplications).set({ status: "needs_info", adminNote, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
+      await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: text, createdAt: now });
       await tx.update(supportConversations).set({ status: "needs_info", updatedAt: now, adminReadAt: now, userReadAt: null }).where(eq(supportConversations.id, application.conversationId));
     });
     return NextResponse.json({ ok: true });
   }
 
   if (action === "reject") {
+    const text = adminNote ? `Pengajuan Early Access belum dapat disetujui.\n\nCatatan: ${adminNote}` : "Pengajuan Early Access belum dapat disetujui saat ini.";
     await db.transaction(async (tx) => {
       await tx.update(earlyAccessApplications).set({ status: "rejected", adminNote, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
+      await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: text, createdAt: now });
       await tx.update(supportConversations).set({ status: "resolved", updatedAt: now, adminReadAt: now, userReadAt: null }).where(eq(supportConversations.id, application.conversationId));
     });
     return NextResponse.json({ ok: true });
@@ -120,6 +124,7 @@ export async function POST(req: Request) {
     }
 
     await tx.update(earlyAccessApplications).set({ status: "approved", adminNote, reviewedBy: adminUserId, reviewedAt: now, updatedAt: now }).where(eq(earlyAccessApplications.id, applicationId));
+    await tx.insert(supportMessages).values({ conversationId: application.conversationId, senderId: adminUserId, senderType: "admin", message: `Pengajuan Early Access kamu disetujui. Paket ${pkg.name ?? pkg.slug} aktif gratis selama 30 hari. Selamat mencoba dan jangan ragu mengirim feedback lewat Bantuan SiapinAja.`, createdAt: now });
     await tx.update(supportConversations).set({ status: "resolved", updatedAt: now, adminReadAt: now, userReadAt: null }).where(eq(supportConversations.id, application.conversationId));
   });
 
