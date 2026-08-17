@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 
 interface Conversation {
   id: string;
@@ -33,6 +34,11 @@ interface Application {
   adminNote: string | null;
 }
 
+function mergeMessage(current: Message[], incoming: Message) {
+  if (current.some((item) => item.id === incoming.id)) return current;
+  return [...current, incoming].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+}
+
 export default function AdminSupportInbox() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -61,7 +67,54 @@ export default function AdminSupportInbox() {
     void load();
   }, []);
 
-  async function openConversation(id: string) {
+  useEffect(() => {
+    const supabase = createSupabaseClient();
+    const channel = supabase
+      .channel("support-admin-inbox")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "support_messages" },
+        (payload) => {
+          const row = payload.new as { id: string; conversation_id: string; sender_type: Message["senderType"]; message: string; created_at: string };
+          if (row.conversation_id === selected) {
+            setMessages((current) => mergeMessage(current, { id: row.id, senderType: row.sender_type, message: row.message, createdAt: row.created_at }));
+          }
+          void load();
+          if (row.conversation_id === selected) void openConversation(row.conversation_id, true);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "support_conversations" },
+        (payload) => {
+          const row = payload.new as { id: string };
+          void load();
+          if (row.id === selected) void openConversation(row.id, true);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "support_conversations" },
+        () => {
+          void load();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "early_access_applications" },
+        () => {
+          void load();
+          if (selected) void openConversation(selected, true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [selected]);
+
+  async function openConversation(id: string, silent = false) {
     setSelected(id);
     const response = await fetch(`/api/admin/support?conversationId=${encodeURIComponent(id)}`, { cache: "no-store" });
     const data = await response.json().catch(() => null);
@@ -69,6 +122,7 @@ export default function AdminSupportInbox() {
     setMessages(data.messages ?? []);
     setApplication(data.application ?? null);
     setNote(data.application?.adminNote ?? "");
+    if (!silent) setLoading(false);
   }
 
   async function sendReply() {
@@ -78,8 +132,6 @@ export default function AdminSupportInbox() {
     setSending(false);
     if (!response.ok) return;
     setReply("");
-    await openConversation(selected);
-    await load();
   }
 
   async function review(action: "approve" | "reject" | "needs_info") {
@@ -90,7 +142,7 @@ export default function AdminSupportInbox() {
     setSending(false);
     if (!response.ok) return;
     await load();
-    await openConversation(application.conversationId);
+    await openConversation(application.conversationId, true);
     if (data) setApplication((current) => current ? { ...current, status: action === "approve" ? "approved" : action === "reject" ? "rejected" : "needs_info", adminNote: note } : current);
   }
 
