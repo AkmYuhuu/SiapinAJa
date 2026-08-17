@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/fields";
 import { Icon } from "@/components/icons";
+import { Turnstile } from "@/components/security/turnstile";
 import { useToast } from "@/components/ui/toast";
 import { LegalFooter } from "@/components/legal/legal-footer";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -42,17 +43,23 @@ export default function LoginPage() {
     } catch {}
   }, [email, termsAccepted, privacyAccepted]);
 
-  const submit = async (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!termsAccepted || !privacyAccepted) {
       setError("Kamu wajib menyetujui Syarat & Ketentuan dan Kebijakan Privasi.");
       return;
     }
 
+    const captchaToken = String(new FormData(event.currentTarget).get("turnstileToken") ?? "");
+    if (!captchaToken) {
+      setError("Selesaikan verifikasi anti-bot terlebih dahulu.");
+      return;
+    }
+
     setBusy(true);
     setError("");
     try {
-      await login(email, password, { termsAccepted, privacyAccepted });
+      await login(email, password, { termsAccepted, privacyAccepted, captchaToken });
       try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
       toast("Selamat datang kembali.");
       router.push("/dashboard");
@@ -145,6 +152,8 @@ export default function LoginPage() {
                   <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" required />
                   <span>Saya telah membaca dan menyetujui <Link href={`/privacy?returnTo=${encodeURIComponent("/login")}`} className="font-semibold text-accent-strong hover:underline">Kebijakan Privasi</Link>.</span>
                 </label>
+
+                <Turnstile name="turnstileToken" />
 
                 {error && <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">{error}</p>}
 
