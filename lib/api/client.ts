@@ -4,7 +4,7 @@
 // API routes. Server is always the source of truth; premium tools stay
 // locked whenever the server check cannot succeed.
 
-import type { Entitlement, Session, AccessState, VerifyResult } from "./types";
+import type { AuthBootstrap, Entitlement, Session, AccessState, VerifyResult } from "./types";
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -25,18 +25,10 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
       : "";
 
   if (!res.ok) {
-    if (res.status === 401) {
-      throw new ApiError(serverMessage || "Email atau kata sandi salah.", 401);
-    }
-    if (res.status === 403) {
-      throw new ApiError(serverMessage || "Akses ditolak untuk paket ini.", 403);
-    }
-    if (res.status === 429) {
-      throw new ApiError(serverMessage || "Terlalu banyak permintaan. Coba lagi sebentar lagi.", 429);
-    }
-    if (res.status >= 500) {
-      throw new ApiError(serverMessage || "Layanan sedang bermasalah. Coba lagi nanti.", res.status);
-    }
+    if (res.status === 401) throw new ApiError(serverMessage || "Email atau kata sandi salah.", 401);
+    if (res.status === 403) throw new ApiError(serverMessage || "Akses ditolak untuk paket ini.", 403);
+    if (res.status === 429) throw new ApiError(serverMessage || "Terlalu banyak permintaan. Coba lagi sebentar lagi.", 429);
+    if (res.status >= 500) throw new ApiError(serverMessage || "Layanan sedang bermasalah. Coba lagi nanti.", res.status);
     throw new ApiError(serverMessage || "Permintaan tidak dapat diproses.", res.status);
   }
 
@@ -44,11 +36,14 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  async bootstrap(): Promise<AuthBootstrap> {
+    return http<AuthBootstrap>("/api/auth/bootstrap", { cache: "no-store" });
+  },
   async getSession(): Promise<Session | null> {
-    return http<Session | null>("/api/auth/session");
+    return http<Session | null>("/api/auth/session", { cache: "no-store" });
   },
   async getEntitlement(): Promise<Entitlement | null> {
-    return http<Entitlement | null>("/api/account/entitlement");
+    return http<Entitlement | null>("/api/account/entitlement", { cache: "no-store" });
   },
   async login(email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }): Promise<Session> {
     return http<Session>("/api/auth/login", {
@@ -61,11 +56,8 @@ export const api = {
   },
   async verifyAccess(tool: { toolId: string; status: string }): Promise<VerifyResult> {
     try {
-      const [session, entitlement] = await Promise.all([
-        http<Session | null>("/api/auth/session"),
-        http<Entitlement | null>("/api/account/entitlement"),
-      ]);
-      return { access: evaluate(session, entitlement, tool), session, entitlement };
+      const bootstrap = await api.bootstrap();
+      return { access: evaluate(bootstrap.session, bootstrap.entitlement, tool), session: bootstrap.session, entitlement: bootstrap.entitlement };
     } catch {
       const offline = typeof navigator !== "undefined" && !navigator.onLine;
       return { access: { ok: false, reason: offline ? "offline" : "error" }, session: null, entitlement: null };
