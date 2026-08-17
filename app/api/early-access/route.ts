@@ -3,7 +3,6 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { earlyAccessApplications, profiles, supportConversations, supportMessages } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
-import { verifyTurnstile } from "@/lib/security/turnstile";
 
 const PACKAGE_SLUGS = new Set(["umkm", "freelancer", "creator", "creator-seller"]);
 
@@ -44,15 +43,6 @@ export async function POST(req: Request) {
   if (!user) return error(401, "NO_SESSION", "Masuk dulu untuk mengikuti Early Access.");
 
   const body = (await req.json().catch(() => null)) as Record<string, string> | null;
-  const captcha = await verifyTurnstile(body?.captchaToken, req);
-  if (!captcha.ok) {
-    const status = captcha.reason === "not_configured" ? 503 : 400;
-    const message = captcha.reason === "not_configured"
-      ? "Proteksi anti-bot belum dikonfigurasi. Silakan coba lagi nanti."
-      : "Verifikasi anti-bot gagal. Silakan selesaikan verifikasi lalu coba lagi.";
-    return error(status, "CAPTCHA_REQUIRED", message);
-  }
-
   const requestedPackageSlug = body?.requestedPackageSlug?.trim().toLowerCase() ?? "";
   const fullName = body?.fullName?.trim() ?? "";
   const businessName = body?.businessName?.trim() ?? "";
