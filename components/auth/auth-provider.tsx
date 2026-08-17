@@ -32,41 +32,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, e] = await Promise.all([api.getSession(), api.getEntitlement()]);
-      setSession(s); setEntitlement(e);
+      const { session: nextSession, entitlement: nextEntitlement } = await api.bootstrap();
+      setSession(nextSession);
+      setEntitlement(nextEntitlement);
     } catch {
-      setSession(null); setEntitlement(null);
-    } finally { setLoading(false); }
+      setSession(null);
+      setEntitlement(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, e] = await Promise.all([api.getSession(), api.getEntitlement()]);
+        const { session: nextSession, entitlement: nextEntitlement } = await api.bootstrap();
         if (cancelled) return;
-        setSession(s); setEntitlement(e);
+        setSession(nextSession);
+        setEntitlement(nextEntitlement);
       } catch {
         if (cancelled) return;
-        setSession(null); setEntitlement(null);
+        setSession(null);
+        setEntitlement(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    const onOnline = () => refresh();
+
+    const onOnline = () => { void refresh(); };
     window.addEventListener("online", onOnline);
     return () => { cancelled = true; window.removeEventListener("online", onOnline); };
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string, consent?: { termsAccepted: boolean; privacyAccepted: boolean }) => {
-    const s = await api.login(email, password, consent);
+    const loggedInSession = await api.login(email, password, consent);
     await refresh();
-    return s;
+    return loggedInSession;
   }, [refresh]);
 
   const logout = useCallback(async () => {
     await api.logout();
-    setSession(null); setEntitlement(null);
+    setSession(null);
+    setEntitlement(null);
   }, []);
 
   return <AuthContext.Provider value={{ session, entitlement, loading, refresh, login, logout }}>{children}</AuthContext.Provider>;
