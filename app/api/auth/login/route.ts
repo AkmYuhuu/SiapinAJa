@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import type { Session } from "@/lib/api/types";
+import { verifyTurnstile } from "@/lib/security/turnstile";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -10,6 +11,7 @@ type LoginBody = {
   password?: string;
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
+  captchaToken?: string;
 };
 
 export async function POST(req: Request) {
@@ -25,6 +27,15 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as LoginBody | null;
+  const captcha = await verifyTurnstile(body?.captchaToken, req);
+  if (!captcha.ok) {
+    const status = captcha.reason === "not_configured" ? 503 : 400;
+    const message = captcha.reason === "not_configured"
+      ? "Proteksi anti-bot belum dikonfigurasi. Silakan coba lagi nanti."
+      : "Verifikasi anti-bot gagal. Silakan selesaikan verifikasi lalu coba lagi.";
+    return NextResponse.json({ error: { code: "CAPTCHA_REQUIRED", message } }, { status });
+  }
+
   const email = body?.email?.trim();
   const password = body?.password;
 
