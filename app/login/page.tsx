@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/fields";
 import { Icon } from "@/components/icons";
 import { useToast } from "@/components/ui/toast";
 import { LegalFooter } from "@/components/legal/legal-footer";
+import { useAuth } from "@/components/auth/auth-provider";
 import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 const DRAFT_KEY = "siapinaja:login-draft";
