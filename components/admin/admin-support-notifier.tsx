@@ -17,8 +17,6 @@ export default function AdminSupportNotifier() {
   const seenMessageIds = useRef<Set<string>>(new Set());
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const dragRef = useRef<{ x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -103,67 +101,51 @@ export default function AdminSupportNotifier() {
     if (countdownTimer.current) clearInterval(countdownTimer.current);
   }
 
-  function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: position.x, y: position.y, startX: event.clientX, startY: event.clientY, moved: false };
+  function openInbox() {
+    dismiss();
+    router.push("/admin/support");
   }
-  function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
-    const nextX = Math.max(-window.innerWidth + 40, Math.min(40, drag.x + dx));
-    const nextY = Math.max(-window.innerHeight + 40, Math.min(40, drag.y + dy));
-    setPosition({ x: nextX, y: nextY });
-  }
-  function onPointerUp() { dragRef.current = null; }
 
   if (!isAdmin || !visible) return null;
   const progress = Math.max(0, Math.min(100, (remainingMs / 5000) * 100));
 
   return (
-    <div
-      className="fixed right-5 top-5 z-[100] touch-none select-none"
-      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      role="status"
-    >
-      <div className="w-[min(92vw,360px)] overflow-hidden rounded-xl border border-border bg-surface shadow-[0_18px_48px_rgba(43,40,35,0.2)]">
-        <div className="flex items-start gap-3 px-4 py-3">
-          <button
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              dismiss();
-              router.push("/admin/support");
-            }}
-            className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-danger text-white"
-            aria-label="Buka Inbox Bantuan"
-          >
-            <span className="size-2.5 rounded-full bg-white" />
-          </button>
-          <button
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => { event.stopPropagation(); dismiss(); }}
-            className="min-w-0 flex-1 text-left"
-            aria-label="Tutup notifikasi"
-          >
-            <span className="block text-sm font-bold text-ink">Pesan baru</span>
-            <span className="mt-0.5 block text-xs leading-relaxed text-ink-secondary">Ada chat terbaru dari user. Klik untuk membuka Inbox.</span>
-          </button>
-          {count > 0 && <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{count > 99 ? "99+" : count}</span>}
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); dismiss(); }} className="flex size-7 shrink-0 items-center justify-center rounded-md text-ink-faint hover:bg-surface-muted hover:text-ink" aria-label="Dismiss">×</button>
-        </div>
+    <div className="fixed right-5 top-5 z-[100] w-[min(92vw,360px)]">
+      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-[0_18px_48px_rgba(43,40,35,0.2)]">
+        <button
+          type="button"
+          onClick={openInbox}
+          className="block w-full px-4 py-3 text-left transition hover:bg-surface-muted/70"
+          aria-label="Buka Inbox Bantuan"
+        >
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-danger text-white">
+              <span className="size-2.5 rounded-full bg-white" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-ink">Pesan baru</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-ink-secondary">Ada chat terbaru dari user. Klik untuk membuka chat admin.</span>
+            </span>
+            {count > 0 && <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{count > 99 ? "99+" : count}</span>}
+          </div>
+        </button>
+
         <div className="flex items-center justify-between border-t border-border px-4 py-2 text-[10px] text-ink-faint">
-          <span>Geser notifikasi untuk memindahkan</span>
+          <span>Notifikasi otomatis ditutup</span>
           <span>{Math.max(1, Math.ceil(remainingMs / 1000))}s</span>
         </div>
-        <div className="h-1 bg-surface-muted"><div className="h-full bg-danger transition-[width] duration-100 linear" style={{ width: `${progress}%` }} /></div>
+        <div className="flex items-center gap-3 border-t border-border px-4 py-2">
+          <button
+            type="button"
+            onClick={dismiss}
+            className="rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-ink-secondary hover:bg-surface-muted hover:text-ink"
+          >
+            Dismiss
+          </button>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
+            <div className="h-full bg-danger transition-[width] duration-100 linear" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
       </div>
     </div>
   );
