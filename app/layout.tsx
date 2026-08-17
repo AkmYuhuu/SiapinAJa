@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { EntryLoading } from "@/components/ui/entry-loading";
 import { PageTransition } from "@/components/ui/page-transition";
-import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -23,9 +22,9 @@ export const metadata: Metadata = {
   description:
     "Toolbox untuk freelancer dan UMKM Indonesia: hitung harga, kelola order, buat dokumen, dan siapkan materi jualan.",
   icons: {
-    icon: BRAND_LOGO_DATA_URL,
-    shortcut: BRAND_LOGO_DATA_URL,
-    apple: BRAND_LOGO_DATA_URL,
+    icon: "/brand/siapinaja-logo.svg",
+    shortcut: "/brand/siapinaja-logo.svg",
+    apple: "/brand/siapinaja-logo.svg",
   },
 };
 
