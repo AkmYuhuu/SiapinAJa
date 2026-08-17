@@ -25,7 +25,7 @@ export const earlyAccessApplications = pgTable(
   },
   (t) => [
     check("early_access_status_check", sql`${t.status} in ('pending','needs_info','approved','rejected')`),
-    check("early_access_package_check", sql`${t.requestedPackageSlug} in ('umkm','freelancer','creator','creator-seller')`),
+    check("early_access_package_check", sql`${t.requestedPackageSlug} in ('umkm','freelancer','creator')`),
     index("early_access_applications_status_idx").on(t.status),
     index("early_access_applications_user_id_idx").on(t.userId),
   ],
