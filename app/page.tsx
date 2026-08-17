@@ -4,6 +4,7 @@ import { CATEGORIES, TOOLS } from "@/lib/registry";
 import { Icon } from "@/components/icons";
 import { EarlyAccessNotice } from "@/components/landing/early-access-notice";
 import { LegalFooter } from "@/components/legal/legal-footer";
+import { BRAND_LOGO_DATA_URL } from "@/lib/brand";
 
 export default function LandingPage() {
   return (
@@ -14,7 +15,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-accent"><Icon name="tools" className="size-4 text-white" /></span>
+            <span className="flex size-8 shrink-0 overflow-hidden rounded-md bg-accent shadow-sm"><img src={BRAND_LOGO_DATA_URL} alt="SiapinAja" className="size-full object-cover" /></span>
             <span className="flex flex-col leading-tight"><span className="text-base font-bold tracking-tight text-ink">Siapin<span className="text-accent-strong">Aja</span></span><span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-ink-faint">Early Access</span></span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-ink-secondary md:flex"><a href="#kategori" className="hover:text-ink">Kategori</a><a href="#cara-kerja" className="hover:text-ink">Cara kerja</a><Link href="/pricing" prefetch={false} className="hover:text-ink">Harga</Link></nav>
