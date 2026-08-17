@@ -1,0 +1,46 @@
+name: Repair support realtime payload typing
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair TypeScript payload destructuring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('components/support/support-widget.tsx')
+          s = p.read_text()
+          old = '.on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ payload }) => {\n        const row = payload.new as { id: string; conversation_id: string; sender_type: string; message: string; created_at: string };'
+          new = '.on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ new: row }) => {\n        const typedRow = row as { id: string; conversation_id: string; sender_type: string; message: string; created_at: string };'
+          if old in s:
+              s = s.replace(old, new)
+          else:
+              s = s.replace('      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ payload }) => {', '      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_messages" }, ({ new: typedRow }) => {')
+              s = s.replace('        if (row.sender_type !== "admin") return;', '        if (typedRow.sender_type !== "admin") return;')
+              s = s.replace('conversationsRef.current.find((item) => item.id === row.conversation_id)', 'conversationsRef.current.find((item) => item.id === typedRow.conversation_id)')
+              s = s.replace('(row.conversation_id === earlyConversationIdRef.current', '(typedRow.conversation_id === earlyConversationIdRef.current')
+              s = s.replace('const incoming: Message = { id: row.id, senderType: "admin", message: row.message, createdAt: row.created_at };', 'const incoming: Message = { id: typedRow.id, senderType: "admin", message: typedRow.message, createdAt: typedRow.created_at };')
+              s = s.replace('if (row.conversation_id === conversationIdRef.current)', 'if (typedRow.conversation_id === conversationIdRef.current)')
+              s = s.replace('row.conversation_id, targetType);', 'typedRow.conversation_id, targetType);')
+          p.write_text(s)
+          PY
+      - name: Commit repair and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/support/support-widget.tsx
+          git commit -m "fix(support): correct realtime postgres payload typing [skip ci]" || exit 0
+          git push
+          rm .github/workflows/fix-support-payload.yml
+          git add .github/workflows/fix-support-payload.yml
+          git commit -m "chore: remove temporary repair workflow [skip ci]" || exit 0
+          git push
