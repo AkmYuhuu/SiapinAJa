@@ -30,6 +30,8 @@ export async function GET(req: Request) {
         status: supportConversations.status,
         createdAt: supportConversations.createdAt,
         updatedAt: supportConversations.updatedAt,
+        userReadAt: supportConversations.userReadAt,
+        adminReadAt: supportConversations.adminReadAt,
       })
       .from(supportConversations)
       .where(and(eq(supportConversations.id, conversationId), eq(supportConversations.userId, user.id)))
@@ -64,6 +66,8 @@ export async function GET(req: Request) {
       status: supportConversations.status,
       createdAt: supportConversations.createdAt,
       updatedAt: supportConversations.updatedAt,
+      userReadAt: supportConversations.userReadAt,
+      adminReadAt: supportConversations.adminReadAt,
     })
     .from(supportConversations)
     .where(eq(supportConversations.userId, user.id))
