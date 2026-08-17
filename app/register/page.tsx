@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/fields";
 import { Icon } from "@/components/icons";
 import { BrandMark } from "@/components/brand/logo";
+import { Turnstile } from "@/components/security/turnstile";
 import { useToast } from "@/components/ui/toast";
 import { LegalFooter } from "@/components/legal/legal-footer";
 
@@ -43,10 +44,16 @@ export default function RegisterPage() {
     } catch {}
   }, [name, email, termsAccepted, privacyAccepted]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!termsAccepted || !privacyAccepted) {
       setError("Kamu wajib menyetujui Syarat & Ketentuan dan Kebijakan Privasi.");
+      return;
+    }
+
+    const captchaToken = String(new FormData(e.currentTarget).get("turnstileToken") ?? "");
+    if (!captchaToken) {
+      setError("Selesaikan verifikasi anti-bot terlebih dahulu.");
       return;
     }
 
@@ -56,7 +63,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, termsAccepted, privacyAccepted }),
+        body: JSON.stringify({ name, email, password, termsAccepted, privacyAccepted, captchaToken }),
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: { message?: string } };
       if (!res.ok) throw new Error(data.error?.message || "Gagal mendaftar. Coba lagi.");
@@ -159,6 +166,8 @@ export default function RegisterPage() {
                       <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} className="mt-0.5 size-4 accent-[var(--accent)]" required />
                       <span>Saya telah membaca dan menyetujui <Link href={`/privacy?returnTo=${encodeURIComponent("/register")}`} className="font-semibold text-accent-strong hover:underline">Kebijakan Privasi</Link>.</span>
                     </label>
+
+                    <Turnstile name="turnstileToken" />
 
                     {error && <p className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">{error}</p>}
 
