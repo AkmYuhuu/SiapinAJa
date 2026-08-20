@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { SidebarContent } from "./sidebar";
 import { SupportWidget } from "@/components/support/support-widget";
 import AdminSupportNotifier from "@/components/admin/admin-support-notifier";
+import { EarlyAccessExpiryPopup } from "@/components/feedback/early-access-expiry-popup";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Icon } from "@/components/icons";
 import { getTool, getToolByRoute, getCategory, CATEGORIES, searchTools } from "@/lib/registry";
@@ -140,6 +141,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <AdminSupportNotifier />
       <SupportWidget />
+      <EarlyAccessExpiryPopup />
     </div>
   );
 }
