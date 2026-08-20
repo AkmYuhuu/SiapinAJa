@@ -24,8 +24,9 @@ declare global {
   }
 }
 
-export function Turnstile({ onToken }: { onToken?: (token: string) => void }) {
+export function Turnstile({ name, onToken }: { name?: string; onToken?: (token: string) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const tokenRef = useRef<HTMLInputElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -55,14 +56,24 @@ export function Turnstile({ onToken }: { onToken?: (token: string) => void }) {
     widgetIdRef.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
       theme: "light",
-      callback: (token) => onToken?.(token),
-      "expired-callback": () => onToken?.(""),
-      "error-callback": () => onToken?.(""),
+      callback: (token) => {
+        if (tokenRef.current) tokenRef.current.value = token;
+        onToken?.(token);
+      },
+      "expired-callback": () => {
+        if (tokenRef.current) tokenRef.current.value = "";
+        onToken?.("");
+      },
+      "error-callback": () => {
+        if (tokenRef.current) tokenRef.current.value = "";
+        onToken?.("");
+      },
     });
 
     return () => {
       if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
       widgetIdRef.current = null;
+      if (tokenRef.current) tokenRef.current.value = "";
       onToken?.("");
     };
   }, [ready, siteKey, onToken]);
@@ -75,5 +86,10 @@ export function Turnstile({ onToken }: { onToken?: (token: string) => void }) {
     );
   }
 
-  return <div ref={containerRef} className="min-h-[65px]" aria-label="Verifikasi anti-bot" />;
+  return (
+    <div>
+      <div ref={containerRef} className="min-h-[65px]" aria-label="Verifikasi anti-bot" />
+      {name ? <input ref={tokenRef} type="hidden" name={name} defaultValue="" /> : null}
+    </div>
+  );
 }
