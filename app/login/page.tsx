@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -50,7 +51,6 @@ export default function LoginPage() {
       return;
     }
 
-    const captchaToken = String(new FormData(event.currentTarget).get("turnstileToken") ?? "");
     if (!captchaToken) {
       setError("Selesaikan verifikasi anti-bot terlebih dahulu.");
       return;
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   <span>Saya telah membaca dan menyetujui <Link href={`/privacy?returnTo=${encodeURIComponent("/login")}`} className="font-semibold text-accent-strong hover:underline">Kebijakan Privasi</Link>.</span>
                 </label>
 
-                <Turnstile name="turnstileToken" />
+                <Turnstile onToken={setCaptchaToken} />
 
                 {error && <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">{error}</p>}
 
