@@ -34,7 +34,7 @@ export default function AccountPage() {
     );
   }
 
-  const entitlements = entitlement?.packs ?? [];
+  const activePackages = entitlement?.packages ?? [];
 
   async function redeem() {
     if (!code.trim() || redeeming) return;
@@ -73,21 +73,46 @@ export default function AccountPage() {
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-6">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-ink-secondary">Status Paket</h2>
-        {entitlement ? (
-          <>
-            <div className="mt-4 space-y-3">
-              {entitlements.length === 0 && <p className="text-sm text-ink-secondary">Tidak ada paket aktif.</p>}
-              {entitlements.map((p) => {
-                const info = PACK_INFO[p] ?? { name: p, icon: "tools" as const, desc: "" };
-                const active = entitlement.status === "active";
-                return <div key={p} className="flex items-center gap-3 rounded-md border border-border bg-surface-muted/50 px-4 py-3"><span className={`flex size-9 items-center justify-center rounded-md ${active ? "bg-accent-soft text-accent-strong" : "bg-surface-muted text-ink-faint"}`}><Icon name={info.icon} className="size-4.5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-ink">{info.name}</p><p className="text-[12px] text-ink-faint">{info.desc}</p></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${active ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>{active ? "Aktif" : "Kedaluwarsa"}</span></div>;
-              })}
-            </div>
-            <p className="mt-4 text-[13px] text-ink-secondary">Masa aktif s/d <strong className="text-ink">{formatDate(entitlement.expiresAt)}</strong></p>
-            <p className="mt-1 text-[12px] text-ink-faint">Status ini diverifikasi ke server - bukan dari perangkatmu.</p>
-          </>
-        ) : <p className="mt-4 text-sm text-ink-secondary">Status paket belum dapat dimuat.</p>}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-ink-secondary">Status Paket</h2>
+            <p className="mt-1 text-xs text-ink-faint">Setiap paket memiliki masa aktifnya sendiri.</p>
+          </div>
+          <span className="rounded-full bg-success-soft px-2.5 py-1 text-[11px] font-semibold text-success">
+            {entitlement?.status === "active" ? "Ada paket aktif" : "Tidak ada paket aktif"}
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {activePackages.length === 0 && <p className="text-sm text-ink-secondary">Tidak ada paket aktif.</p>}
+          {activePackages.map((pkg) => {
+            const info = PACK_INFO[pkg.slug] ?? { name: pkg.slug, icon: "tools" as const, desc: "" };
+            const isActive = pkg.status === "active";
+            return (
+              <div key={`${pkg.slug}:${pkg.expiresAt}`} className="flex items-center gap-3 rounded-md border border-border bg-surface-muted/50 px-4 py-3">
+                <span className={`flex size-9 items-center justify-center rounded-md ${isActive ? "bg-accent-soft text-accent-strong" : "bg-surface-muted text-ink-faint"}`}>
+                  <Icon name={info.icon} className="size-4.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink">{info.name}</p>
+                  <p className="text-[12px] text-ink-faint">{info.desc}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
+                    {isActive ? "Aktif" : "Kedaluwarsa"}
+                  </span>
+                  <p className="mt-1 text-[11px] text-ink-faint">s/d {formatDate(pkg.expiresAt)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {entitlement && activePackages.length > 0 && (
+          <p className="mt-4 text-[12px] text-ink-faint">
+            Masa aktif setiap paket dihitung dan diverifikasi secara terpisah. Mengaktifkan paket baru tidak memperpanjang atau mengatur ulang paket lain.
+          </p>
+        )}
       </div>
 
       <div className="rounded-lg border border-border bg-surface p-6">
